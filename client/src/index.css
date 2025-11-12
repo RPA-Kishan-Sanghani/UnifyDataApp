@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html, body {
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    max-width: 100vw;
+  }
+  
+  * {
+    box-sizing: border-box;
+  }
+  
+  #root {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+}
+
 @layer utilities {
   /* Custom animations for enhanced micro-interactions */
   @keyframes fade-in {
