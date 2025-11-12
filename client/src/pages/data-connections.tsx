@@ -193,17 +193,17 @@ export default function DataConnections() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-full w-full max-w-full bg-gray-50">
       {/* Page Header */}
-      <div className="border-b border-gray-200 px-6 py-4 text-[14px] bg-[#ffffff]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
+      <div className="border-b border-gray-200 px-6 py-4 text-[14px] bg-[#ffffff] flex-shrink-0">
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between min-w-0">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-gray-900">Data Connections</h1>
             <p className="text-gray-600 mt-1">Manage your data connections</p>
           </div>
           <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700" data-testid="button-connect-data-source">
+              <Button className="bg-blue-600 hover:bg-blue-700 flex-shrink-0" data-testid="button-connect-data-source">
                 <Plus className="w-4 h-4" />Connect Data Source
               </Button>
             </DialogTrigger>
@@ -222,10 +222,10 @@ export default function DataConnections() {
           </Dialog>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="flex gap-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-6 py-6 min-h-0 overflow-y-auto">
+        <div className="flex gap-6 min-w-0">
           {/* Left Sidebar - Categories */}
-          <div className="w-64 space-y-1">
+          <div className="w-64 flex-shrink-0 space-y-1">
             <h3 className="font-medium text-gray-900 px-3 py-2">Categories</h3>
             {CONNECTION_CATEGORIES.map((category) => {
               const Icon = category.icon;
@@ -244,7 +244,7 @@ export default function DataConnections() {
           </div>
 
           {/* Right Column - Connections */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0 overflow-x-hidden">
             {/* Filters */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
               <div className="flex flex-col sm:flex-row gap-4">
