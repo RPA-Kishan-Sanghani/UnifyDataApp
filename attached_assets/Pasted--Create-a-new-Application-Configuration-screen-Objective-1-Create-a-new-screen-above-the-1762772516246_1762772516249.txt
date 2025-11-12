@@ -1,0 +1,56 @@
+# Create a new "Application Configuration" screen 
+ 
+# Objective:
+# 1. Create a new screen above the "Source Connection" page in the UI called "Application Configuration".
+# 2. In this screen, users can manage application metadata — source and target application details.
+
+# -------------------------------------------
+# 🖥️ UI REQUIREMENTS
+# -------------------------------------------
+ 
+# Create a new page component: /pages/ApplicationConfig.tsx
+# - Place it above the Source Connection screen in the sidebar.
+# - Use a form layout with the following fields:
+#   - Application ID (auto-generated, read-only)
+#   - Application Type (Dropdown: Source / Target / Both)
+#   - Application Name (Text input)
+#   - Application Owner (Text input)
+#   - Application Description (Multiline textarea)
+#   - Version (Text input)
+#   - Department (Text input)
+#   - Status (Dropdown: Active / Inactive)
+# - Include buttons:
+#   - [Save] → Inserts/updates 
+#   - [Cancel] → Redirects back to dashboard
+ 
+# Add a grid/table below the form that lists all configured applications
+# Columns: Application ID | Name | Type | Owner | Status | Last Updated
+# Include [Edit] and [Delete] actions in each row.
+ 
+# -------------------------------------------
+# 🧩 DATABASE SCHEMA CHANGES
+# -------------------------------------------
+ 
+# Create new table for storing application metadata:
+ 
+CREATE TABLE (
+    application_id VARCHAR(20) PRIMARY KEY,
+    application_type VARCHAR(50),
+    application_name VARCHAR(100),
+    application_owner VARCHAR(100),
+    application_description VARCHAR(255),
+    version VARCHAR(20),
+    department VARCHAR(50),
+    created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status VARCHAR(20) CHECK (status IN ('Active', 'Inactive'))
+);
+ 
+ 
+# -------------------------------------------
+# ✅ Expected Outcome
+# -------------------------------------------
+# - A new Application Configuration page is visible above the Source Connection page.
+# - User can create, edit, and view application details.
+
+ 

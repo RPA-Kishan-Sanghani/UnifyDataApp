@@ -1,0 +1,103 @@
+
+import MetricsCards from "@/components/metrics-cards";
+import DagSummaryCards from "@/components/dag-summary-cards";
+import AllPipelinesTable from "@/components/all-pipelines-table";
+import DashboardFilterPanel, { DashboardFilters } from "@/components/dashboard-filter-panel";
+import { useState } from "react";
+
+export default function Dashboard() {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [filters, setFilters] = useState<DashboardFilters>({
+    search: '',
+    system: '',
+    layer: '',
+    status: '',
+    category: '',
+    targetTable: '',
+    dateRange: 'All time',
+    customStartDate: undefined,
+    customEndDate: undefined,
+  });
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const getDateRangeFilter = () => {
+    const now = new Date();
+    
+    if (filters.dateRange === 'custom' && filters.customStartDate && filters.customEndDate) {
+      return {
+        start: filters.customStartDate,
+        end: filters.customEndDate,
+      };
+    }
+    
+    switch (filters.dateRange) {
+      case "Last 24 hours":
+        return {
+          start: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+          end: now,
+        };
+      case "Last 7 days":
+        return {
+          start: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+          end: now,
+        };
+      case "Last 30 days":
+        return {
+          start: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+          end: now,
+        };
+      case "All time":
+        return undefined;
+      default:
+        return undefined;
+    }
+  };
+
+  return (
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      <div className="flex-1 max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col overflow-hidden">
+        <div className="flex gap-4 flex-1 overflow-hidden">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+            <div className="mb-6 flex-shrink-0">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Pipeline Dashboard</h1>
+              <p className="text-gray-600">Monitor and manage your data pipeline operations</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-6 pb-6">
+              <MetricsCards 
+                dateRange={getDateRangeFilter()} 
+                refreshKey={refreshKey}
+                filters={filters}
+              />
+              
+              <DagSummaryCards 
+                dateRange={getDateRangeFilter()} 
+                refreshKey={refreshKey}
+                filters={filters}
+              />
+              
+              <AllPipelinesTable 
+                dateRange={getDateRangeFilter()} 
+                refreshKey={refreshKey}
+                filters={filters}
+              />
+            </div>
+          </div>
+
+          {/* Right Sidebar - Filter Panel */}
+          <div className="flex-shrink-0 h-full">
+            <DashboardFilterPanel
+              filters={filters}
+              onFiltersChange={setFilters}
+              onRefresh={handleRefresh}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
