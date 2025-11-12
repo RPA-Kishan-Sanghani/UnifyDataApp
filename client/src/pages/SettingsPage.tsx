@@ -20,6 +20,7 @@ export function SettingsPage() {
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
+    photoUrl: user?.photoUrl || "",
   });
 
   const handleLogout = () => {
@@ -99,7 +100,7 @@ export function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center space-x-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src="" alt={user?.username || "User"} />
+                  <AvatarImage src={user?.photoUrl || ""} alt={user?.username || "User"} />
                   <AvatarFallback className="text-lg">
                     {getUserInitials()}
                   </AvatarFallback>
@@ -122,6 +123,7 @@ export function SettingsPage() {
                         setProfileData({
                           firstName: user?.firstName || "",
                           lastName: user?.lastName || "",
+                          photoUrl: user?.photoUrl || "",
                         });
                       }
                       setIsEditingProfile(!isEditingProfile);
@@ -151,6 +153,17 @@ export function SettingsPage() {
                     disabled={!isEditingProfile}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     placeholder="Enter your last name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="photoUrl">Photo URL</Label>
+                  <Input
+                    id="photoUrl"
+                    value={isEditingProfile ? profileData.photoUrl : (user?.photoUrl || "")}
+                    disabled={!isEditingProfile}
+                    onChange={(e) => handleInputChange('photoUrl', e.target.value)}
+                    placeholder="Enter photo URL (e.g., https://example.com/photo.jpg)"
+                    data-testid="input-photo-url"
                   />
                 </div>
                 <div className="space-y-2">
@@ -184,6 +197,7 @@ export function SettingsPage() {
                       setProfileData({
                         firstName: user?.firstName || "",
                         lastName: user?.lastName || "",
+                        photoUrl: user?.photoUrl || "",
                       });
                       setIsEditingProfile(false);
                     }}
