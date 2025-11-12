@@ -157,11 +157,11 @@ export function Pipelines() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-full mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex gap-4">
+    <div className="flex flex-col min-h-full w-full max-w-full bg-gray-50">
+      <div className="flex-1 w-full max-w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 min-h-0 overflow-y-auto">
+        <div className="flex gap-4 min-w-0">
           {/* Main Content */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-x-hidden">
             <div className="mb-6 flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2" data-testid="heading-pipelines">Pipeline Configuration</h1>

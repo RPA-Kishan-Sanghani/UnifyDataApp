@@ -182,7 +182,8 @@ export default function ApplicationConfig() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="flex flex-col min-h-full w-full max-w-full overflow-y-auto">
+      <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Application Configuration</h1>
@@ -471,6 +472,7 @@ export default function ApplicationConfig() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
