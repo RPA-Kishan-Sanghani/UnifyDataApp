@@ -24,7 +24,7 @@ export const users = pgTable("users", {
   password: varchar("password"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
-  photoUrl: varchar("photo_url", { length: 500 }),
+  photoUrl: text("photo_url"),
   tourCompleted: boolean("tour_completed").default(false),
 });
 

@@ -2112,13 +2112,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       (url) => {
         if (!url) return true;
         const lowerUrl = url.toLowerCase();
+        
         // Allow HTTPS URLs or base64 data URLs for images, but reject javascript: schemes
-        return (
-          lowerUrl.startsWith('https://') || 
-          lowerUrl.startsWith('data:image/')
-        ) && !lowerUrl.startsWith('javascript:');
+        if (lowerUrl.startsWith('javascript:')) return false;
+        
+        if (lowerUrl.startsWith('data:image/')) {
+          // Validate base64 size (max ~7MB base64 = ~5MB actual image)
+          if (url.length > 7 * 1024 * 1024) return false;
+          
+          // Validate it's a valid image mime type
+          const validMimeTypes = ['data:image/jpeg', 'data:image/jpg', 'data:image/png', 'data:image/gif', 'data:image/webp'];
+          return validMimeTypes.some(mime => lowerUrl.startsWith(mime));
+        }
+        
+        return lowerUrl.startsWith('https://');
       },
-      { message: 'Photo must be either an HTTPS URL or an uploaded image' }
+      { message: 'Photo must be either an HTTPS URL or a valid image (JPEG, PNG, GIF, WebP) under 5MB' }
     ).optional().or(z.literal('')),
   });
 
