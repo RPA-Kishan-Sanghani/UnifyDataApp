@@ -70,6 +70,15 @@ const dataQualityFormSchema = z.object({
   targetType: z.string().min(1, "Target type is required"),
   targetSchema: z.string().optional(),
   targetTableName: z.string().optional(),
+}).refine((data) => {
+  // Make customQuery required when validationType is "Custom Query Check"
+  if (data.validationType === 'Custom Query Check') {
+    return !!data.customQuery && data.customQuery.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "Custom query is required for Custom Query Check validation type",
+  path: ["customQuery"],
 });
 
 type FormData = z.infer<typeof dataQualityFormSchema>;
@@ -1013,7 +1022,7 @@ export function DataQualityForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
-                      Custom Query
+                      Custom Query <span className="text-red-500">*</span>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
