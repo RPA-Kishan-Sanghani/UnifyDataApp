@@ -311,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Source connections endpoints
+  // Data connections endpoints
   // Get all connections with optional filtering
   app.get("/api/connections", authMiddleware, async (req: AuthRequest, res) => {
     try {
