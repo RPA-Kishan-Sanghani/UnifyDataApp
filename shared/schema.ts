@@ -72,7 +72,7 @@ export const errorTable = pgTable("error_table", {
   errorDetails: text("error_details"),
 });
 
-export const sourceConnectionTable = pgTable("source_connection_table", {
+export const dataConnectionTable = pgTable("data_connection_table", {
   connectionId: serial("connection_id").primaryKey(),
   connectionName: varchar("connection_name", { length: 255 }).notNull(),
   applicationName: varchar("application_name", { length: 100 }),
@@ -183,7 +183,7 @@ export const insertErrorSchema = z.object({
   errorDetails: z.string().optional(),
 });
 
-export const insertSourceConnectionSchema = z.object({
+export const insertDataConnectionSchema = z.object({
   connectionName: z.string().max(100),
   applicationName: z.string().max(100).optional(),
   connectionType: z.string().max(50),
@@ -199,7 +199,7 @@ export const insertSourceConnectionSchema = z.object({
   status: z.string().max(20).default('Pending'),
 });
 
-export const updateSourceConnectionSchema = insertSourceConnectionSchema.partial();
+export const updateDataConnectionSchema = insertDataConnectionSchema.partial();
 
 export const insertConfigSchema = z.object({
   configKey: z.number().optional(),
@@ -238,9 +238,9 @@ export type AuditRecord = typeof auditTable.$inferSelect;
 export type InsertAuditRecord = z.infer<typeof insertAuditSchema>;
 export type ErrorRecord = typeof errorTable.$inferSelect;
 export type InsertErrorRecord = z.infer<typeof insertErrorSchema>;
-export type SourceConnection = typeof sourceConnectionTable.$inferSelect;
-export type InsertSourceConnection = z.infer<typeof insertSourceConnectionSchema>;
-export type UpdateSourceConnection = z.infer<typeof updateSourceConnectionSchema>;
+export type DataConnection = typeof dataConnectionTable.$inferSelect;
+export type InsertDataConnection = z.infer<typeof insertDataConnectionSchema>;
+export type UpdateDataConnection = z.infer<typeof updateDataConnectionSchema>;
 export type ConfigRecord = typeof configTable.$inferSelect & { enableDynamicSchema: string | null };
 export type InsertConfigRecord = z.infer<typeof insertConfigSchema>;
 export type UpdateConfigRecord = z.infer<typeof updateConfigSchema>;

@@ -134,12 +134,12 @@ export const helpSections: HelpSection[] = [
     ]
   },
   {
-    id: 'source-connections',
-    title: 'Source Connections',
+    id: 'data-connections',
+    title: 'Data Connections',
     icon: 'Database',
-    overview: 'Source Connections manages your database connectivity configurations. This is where you configure connections to external databases (MySQL, PostgreSQL) that store your application data, audit logs, and pipeline metadata.',
+    overview: 'Data Connections manages your database connectivity configurations. This is where you configure connections to external databases (MySQL, PostgreSQL) that store your application data, audit logs, and pipeline metadata.',
     workflow: [
-      'Go to "Source Connections" from the sidebar',
+      'Go to "Data Connections" from the sidebar',
       'Click "Add New Connection" to create a connection',
       'Select the database type (MySQL or PostgreSQL)',
       'Enter connection details (host, port, database name)',
@@ -452,7 +452,7 @@ export const helpSections: HelpSection[] = [
         example: 'daily_customer_recon'
       },
       {
-        name: 'Source Connection',
+        name: 'Data Connection',
         type: 'Select',
         required: true,
         description: 'Database connection for the source system',
@@ -740,7 +740,7 @@ export const helpSections: HelpSection[] = [
       'If AI doesn\'t understand, try rephrasing with specific table/column names',
       'If SQL errors occur, check if requested columns/tables exist in data dictionary',
       'If no charts appear, verify your query returns numeric data for visualization',
-      'If connection fails, check database connection settings in Source Connections',
+      'If connection fails, check database connection settings in Data Connections',
       'If AI response is slow, complex queries may take longer to generate and execute'
     ]
   }

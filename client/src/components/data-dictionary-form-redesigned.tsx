@@ -632,9 +632,9 @@ export function DataDictionaryFormRedesigned({ entry, onSuccess, onCancel }: Dat
                 </Select>
               </div>
 
-              {/* Source Connection */}
+              {/* Data Connection */}
               <div className="space-y-2">
-                <Label htmlFor="source-connection">Source Connection</Label>
+                <Label htmlFor="source-connection">Data Connection</Label>
                 <Select
                   value={watchedValues.sourceConnectionId?.toString() || ""}
                   onValueChange={(value) => {

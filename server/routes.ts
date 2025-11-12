@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db, pool } from "./db";
 import { users } from "@shared/schema";
-import { insertUserSchema, insertSourceConnectionSchema, updateSourceConnectionSchema, insertConfigSchema, updateConfigSchema, insertDataDictionarySchema, updateDataDictionarySchema, insertReconciliationConfigSchema, updateReconciliationConfigSchema, insertDataQualityConfigSchema, updateDataQualityConfigSchema, insertApplicationConfigSchema, updateApplicationConfigSchema } from "@shared/schema";
+import { insertUserSchema, insertDataConnectionSchema, updateDataConnectionSchema, insertConfigSchema, updateConfigSchema, insertDataDictionarySchema, updateDataDictionarySchema, insertReconciliationConfigSchema, updateReconciliationConfigSchema, insertDataQualityConfigSchema, updateDataQualityConfigSchema, insertApplicationConfigSchema, updateApplicationConfigSchema } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import { generateToken, authMiddleware, type AuthRequest } from "./auth";
 import bcrypt from 'bcryptjs';
@@ -370,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/connections", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
-      const validatedData = insertSourceConnectionSchema.parse(req.body);
+      const validatedData = insertDataConnectionSchema.parse(req.body);
       const connection = await storage.createConnection(userId, validatedData);
       
       // Track connection creation
@@ -395,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.userId;
       const id = parseInt(req.params.id);
-      const validatedData = updateSourceConnectionSchema.parse(req.body);
+      const validatedData = updateDataConnectionSchema.parse(req.body);
       const connection = await storage.updateConnection(userId, id, validatedData);
 
       if (!connection) {
@@ -589,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get configs for chat dropdown (connection_name and layer from config_table joined with source_connection_table)
+  // Get configs for chat dropdown (connection_name and layer from config_table joined with data_connection_table)
   app.get("/api/config", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
@@ -615,14 +615,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await client.connect();
 
       try {
-        // Join config_table with source_connection_table to get connection names and layers
+        // Join config_table with data_connection_table to get connection names and layers
         // Capitalize first letter of layer for UI display
         const result = await client.query(`
           SELECT DISTINCT 
             sc.connection_name as "connectionName",
             INITCAP(ct.execution_layer) as "layer"
           FROM config_table ct
-          INNER JOIN source_connection_table sc ON ct.target_connection_id = sc.connection_id
+          INNER JOIN data_connection_table sc ON ct.target_connection_id = sc.connection_id
           WHERE ct.target_connection_id IS NOT NULL
           ORDER BY "connectionName", "layer"
         `);
@@ -1772,7 +1772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dd.column_description as "columnDescription"
           FROM data_dictionary_table dd
           INNER JOIN config_table ct ON dd.config_key = ct.config_key
-          INNER JOIN source_connection_table sc ON ct.target_connection_id = sc.connection_id
+          INNER JOIN data_connection_table sc ON ct.target_connection_id = sc.connection_id
           WHERE sc.connection_name = $1 
             AND LOWER(ct.execution_layer) = LOWER($2)
             AND dd.active_flag = 'Y'
@@ -1785,7 +1785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const uniqueTables = Array.from(new Set(dataDictionary.map((d: any) => `${d.schemaName}.${d.tableName}`)));
         console.log(`[DEBUG] Found ${uniqueTables.length} unique tables:`, uniqueTables);
 
-        // Get TARGET database connection details from source_connection_table
+        // Get TARGET database connection details from data_connection_table
         const connResult = await configClient.query(`
           SELECT 
             host,
@@ -1794,7 +1794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             username,
             password,
             connection_type as "dbType"
-          FROM source_connection_table
+          FROM data_connection_table
           WHERE connection_name = $1
           LIMIT 1
         `, [connectionName]);

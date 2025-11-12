@@ -54,7 +54,7 @@ const reconciliationFormSchema = z.object({
   configKey: z.number().optional(),
   executionLayer: z.string().min(1, "Execution Layer is required"),
   sourceSystem: z.string().min(1, "Source System is required"),
-  sourceConnectionId: z.number({ required_error: "Source Connection is required" }),
+  sourceConnectionId: z.number({ required_error: "Data Connection is required" }),
   sourceType: z.string().min(1, "Source Type is required"),
   sourceSchema: z.string().min(1, "Source Schema is required"),
   sourceTable: z.string().min(1, "Source Table is required"),

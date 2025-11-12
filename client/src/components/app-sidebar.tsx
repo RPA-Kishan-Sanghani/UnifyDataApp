@@ -21,7 +21,7 @@ import { useTour } from "@/components/tour/TourProvider";
 const navigationItems = [
   { path: '/', label: 'Dashboard', icon: Home, testId: 'link-dashboard' },
   { path: '/application-config', label: 'Application Config', icon: Settings, testId: 'link-application-config' },
-  { path: '/source-connections', label: 'Source Connections', icon: DataIcon, testId: 'link-source-connections' },
+  { path: '/data-connections', label: 'Data Connections', icon: DataIcon, testId: 'link-data-connections' },
   { path: '/pipelines', label: 'Data Pipeline', icon: GitBranch, testId: 'link-pipelines' },
   { path: '/data-dictionary', label: 'Data Dictionary', icon: FileText, testId: 'link-data-dictionary' },
   { path: '/reconciliation', label: 'Data Reconciliation', icon: RefreshCw, testId: 'link-data-reconciliation' },

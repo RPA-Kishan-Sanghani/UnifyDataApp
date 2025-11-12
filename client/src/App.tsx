@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
 import ApplicationConfig from "@/pages/ApplicationConfig";
-import SourceConnections from "@/pages/source-connections";
+import DataConnections from "@/pages/data-connections";
 import { Pipelines } from "@/pages/pipelines";
 import { DataDictionary } from "@/pages/data-dictionary";
 import { DataDictionaryFormPage } from "./pages/data-dictionary-form-page";
@@ -75,7 +75,7 @@ function Router() {
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/application-config" component={() => <ProtectedRoute component={ApplicationConfig} />} />
-      <Route path="/source-connections" component={() => <ProtectedRoute component={SourceConnections} />} />
+      <Route path="/data-connections" component={() => <ProtectedRoute component={DataConnections} />} />
       <Route path="/pipelines" component={() => <ProtectedRoute component={Pipelines} />} />
       <Route path="/data-dictionary" component={() => <ProtectedRoute component={DataDictionary} />} />
       <Route path="/data-dictionary/form" component={() => <ProtectedRoute component={DataDictionaryFormPage} />} />

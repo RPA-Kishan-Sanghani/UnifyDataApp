@@ -1,4 +1,4 @@
-import { users, auditTable, errorTable, sourceConnectionTable, configTable, dataDictionaryTable, reconciliationConfigTable, dataQualityConfigTable, applicationConfigTable, userConfigDbSettings, userActivity, chatSessionsTable, chatMessagesTable, savedChartsTable, type User, type InsertUser, type AuditRecord, type ErrorRecord, type SourceConnection, type InsertSourceConnection, type UpdateSourceConnection, type ConfigRecord, type InsertConfigRecord, type UpdateConfigRecord, type DataDictionaryRecord, type InsertDataDictionaryRecord, type UpdateDataDictionaryRecord, type ReconciliationConfig, type InsertReconciliationConfig, type UpdateReconciliationConfig, type DataQualityConfig, type InsertDataQualityConfig, type UpdateDataQualityConfig, type ApplicationConfig, type InsertApplicationConfig, type UpdateApplicationConfig, type UserConfigDbSettings, type InsertUserConfigDbSettings, type UpdateUserConfigDbSettings, type UserActivity, type InsertUserActivity, type ChatSession, type InsertChatSession, type ChatMessage, type InsertChatMessage, type SavedChart, type InsertSavedChart, type UpdateSavedChart } from "@shared/schema";
+import { users, auditTable, errorTable, dataConnectionTable, configTable, dataDictionaryTable, reconciliationConfigTable, dataQualityConfigTable, applicationConfigTable, userConfigDbSettings, userActivity, chatSessionsTable, chatMessagesTable, savedChartsTable, type User, type InsertUser, type AuditRecord, type ErrorRecord, type DataConnection, type InsertDataConnection, type UpdateDataConnection, type ConfigRecord, type InsertConfigRecord, type UpdateConfigRecord, type DataDictionaryRecord, type InsertDataDictionaryRecord, type UpdateDataDictionaryRecord, type ReconciliationConfig, type InsertReconciliationConfig, type UpdateReconciliationConfig, type DataQualityConfig, type InsertDataQualityConfig, type UpdateDataQualityConfig, type ApplicationConfig, type InsertApplicationConfig, type UpdateApplicationConfig, type UserConfigDbSettings, type InsertUserConfigDbSettings, type UpdateUserConfigDbSettings, type UserActivity, type InsertUserActivity, type ChatSession, type InsertChatSession, type ChatMessage, type InsertChatMessage, type SavedChart, type InsertSavedChart, type UpdateSavedChart } from "@shared/schema";
 import { db, pool, getUserSpecificPool } from "./db";
 import { eq, and, gte, lte, count, desc, asc, like, inArray, sql, ilike, or } from "drizzle-orm";
 import { Pool } from 'pg';
@@ -113,17 +113,17 @@ export interface IStorage {
   // Error logs
   getErrors(userId: string, dateRange?: { start: Date; end: Date }): Promise<ErrorRecord[]>;
 
-  // Source connections
-  createConnection(userId: string, connection: InsertSourceConnection): Promise<SourceConnection>;
+  // Data connections
+  createConnection(userId: string, connection: InsertDataConnection): Promise<DataConnection>;
   getConnections(userId: string, filters?: {
     category?: string;
     search?: string;
     status?: string;
-  }): Promise<SourceConnection[]>;
-  getConnection(userId: string, id: number): Promise<SourceConnection | undefined>;
-  updateConnection(userId: string, id: number, updates: UpdateSourceConnection): Promise<SourceConnection | undefined>;
+  }): Promise<DataConnection[]>;
+  getConnection(userId: string, id: number): Promise<DataConnection | undefined>;
+  updateConnection(userId: string, id: number, updates: UpdateDataConnection): Promise<DataConnection | undefined>;
   deleteConnection(userId: string, id: number): Promise<boolean>;
-  testConnection(userId: string, connectionData: Partial<SourceConnection>): Promise<{
+  testConnection(userId: string, connectionData: Partial<DataConnection>): Promise<{
     success: boolean;
     message: string;
     details?: any;
@@ -1124,7 +1124,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Source connection methods
-  async createConnection(userId: string, connection: InsertSourceConnection): Promise<SourceConnection> {
+  async createConnection(userId: string, connection: InsertDataConnection): Promise<DataConnection> {
     const userPoolResult = await getUserSpecificPool(userId);
     if (!userPoolResult) throw new Error('User configuration not found');
     const { db: userDb } = userPoolResult;
@@ -1132,7 +1132,7 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Creating connection with data:', connection);
       const [created] = await userDb
-        .insert(sourceConnectionTable)
+        .insert(dataConnectionTable)
         .values({
           connectionName: connection.connectionName,
           connectionType: connection.connectionType,
@@ -1160,7 +1160,7 @@ export class DatabaseStorage implements IStorage {
     category?: string;
     search?: string;
     status?: string;
-  }): Promise<SourceConnection[]> {
+  }): Promise<DataConnection[]> {
     const userPoolResult = await getUserSpecificPool(userId);
     
     // Return empty array if no user config
@@ -1184,16 +1184,16 @@ export class DatabaseStorage implements IStorage {
         };
 
         if (categoryMap[filters.category]) {
-          conditions.push(inArray(sourceConnectionTable.connectionType, categoryMap[filters.category]));
+          conditions.push(inArray(dataConnectionTable.connectionType, categoryMap[filters.category]));
         }
       }
 
       if (filters?.search) {
-        conditions.push(like(sourceConnectionTable.connectionName, `%${filters.search}%`));
+        conditions.push(like(dataConnectionTable.connectionName, `%${filters.search}%`));
       }
 
       if (filters?.status && filters.status !== 'all') {
-        conditions.push(eq(sourceConnectionTable.status, filters.status));
+        conditions.push(eq(dataConnectionTable.status, filters.status));
       }
 
       // Execute query with Drizzle ORM (automatically converts snake_case to camelCase)
@@ -1201,14 +1201,14 @@ export class DatabaseStorage implements IStorage {
       if (conditions.length > 0) {
         result = await userDb
           .select()
-          .from(sourceConnectionTable)
+          .from(dataConnectionTable)
           .where(and(...conditions))
-          .orderBy(desc(sourceConnectionTable.createdAt));
+          .orderBy(desc(dataConnectionTable.createdAt));
       } else {
         result = await userDb
           .select()
-          .from(sourceConnectionTable)
-          .orderBy(desc(sourceConnectionTable.createdAt));
+          .from(dataConnectionTable)
+          .orderBy(desc(dataConnectionTable.createdAt));
       }
       
       return result;
@@ -1218,30 +1218,30 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getConnection(userId: string, id: number): Promise<SourceConnection | undefined> {
+  async getConnection(userId: string, id: number): Promise<DataConnection | undefined> {
     const userPoolResult = await getUserSpecificPool(userId);
     if (!userPoolResult) return undefined;
     const { db: userDb } = userPoolResult;
 
     const [connection] = await userDb
       .select()
-      .from(sourceConnectionTable)
-      .where(eq(sourceConnectionTable.connectionId, id));
+      .from(dataConnectionTable)
+      .where(eq(dataConnectionTable.connectionId, id));
     return connection || undefined;
   }
 
-  async updateConnection(userId: string, id: number, updates: UpdateSourceConnection): Promise<SourceConnection | undefined> {
+  async updateConnection(userId: string, id: number, updates: UpdateDataConnection): Promise<DataConnection | undefined> {
     const userPoolResult = await getUserSpecificPool(userId);
     if (!userPoolResult) return undefined;
     const { db: userDb } = userPoolResult;
 
     const [updated] = await userDb
-      .update(sourceConnectionTable)
+      .update(dataConnectionTable)
       .set({
         ...updates,
         updatedAt: new Date(),
       })
-      .where(eq(sourceConnectionTable.connectionId, id))
+      .where(eq(dataConnectionTable.connectionId, id))
       .returning();
     return updated || undefined;
   }
@@ -1252,12 +1252,12 @@ export class DatabaseStorage implements IStorage {
     const { db: userDb } = userPoolResult;
 
     const result = await userDb
-      .delete(sourceConnectionTable)
-      .where(eq(sourceConnectionTable.connectionId, id));
+      .delete(dataConnectionTable)
+      .where(eq(dataConnectionTable.connectionId, id));
     return (result.rowCount || 0) > 0;
   }
 
-  async testConnection(userId: string, connectionData: Partial<SourceConnection>): Promise<{
+  async testConnection(userId: string, connectionData: Partial<DataConnection>): Promise<{
     success: boolean;
     message: string;
     details?: any;

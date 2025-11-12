@@ -9,15 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TestTube2, CheckCircle, XCircle, Shield, Database as DatabaseIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { insertSourceConnectionSchema, type SourceConnection, type InsertSourceConnection } from "@shared/schema";
+import { insertDataConnectionSchema, type DataConnection, type InsertDataConnection } from "@shared/schema";
 import { z } from "zod";
 
-const connectionFormSchema = insertSourceConnectionSchema;
+const connectionFormSchema = insertDataConnectionSchema;
 
 type ConnectionFormData = z.infer<typeof connectionFormSchema>;
 
 interface ConnectionFormProps {
-  initialData?: SourceConnection;
+  initialData?: DataConnection;
   isEditing?: boolean;
   onSuccess: () => void;
   onCancel: () => void;

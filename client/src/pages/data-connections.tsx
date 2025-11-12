@@ -10,7 +10,7 @@ import { Plus, Search, Database, File, Cloud, Wifi, Settings, TestTube2, Edit, T
 import { useToast } from "@/hooks/use-toast";
 import { usePagination } from '@/hooks/use-pagination';
 import { DataPagination } from '@/components/ui/data-pagination';
-import type { SourceConnection } from "@shared/schema";
+import type { DataConnection } from "@shared/schema";
 import ConnectionForm from "@/components/connection-form";
 
 const CONNECTION_CATEGORIES = [
@@ -53,13 +53,13 @@ const STATUS_ICONS = {
   'Testing': TestTube2,
 };
 
-export default function SourceConnections() {
+export default function DataConnections() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingConnection, setEditingConnection] = useState<SourceConnection | null>(null);
+  const [editingConnection, setEditingConnection] = useState<DataConnection | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -70,7 +70,7 @@ export default function SourceConnections() {
     status: statusFilter,
   };
 
-  // Fetch source connections
+  // Fetch data connections
   const { data: allConnections = [], isLoading, error } = useQuery({
     queryKey: ['/api/connections', filters],
     queryFn: async () => {
@@ -91,7 +91,7 @@ export default function SourceConnections() {
         headers,
       });
       if (!response.ok) throw new Error('Failed to fetch connections');
-      return (await response.json()) as SourceConnection[];
+      return (await response.json()) as DataConnection[];
     },
   });
 
@@ -113,7 +113,7 @@ export default function SourceConnections() {
 
   // Test connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: async (connectionData: Partial<SourceConnection>) => {
+    mutationFn: async (connectionData: Partial<DataConnection>) => {
       const response = await fetch('/api/connections/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -165,16 +165,16 @@ export default function SourceConnections() {
     },
   });
 
-  const handleTestConnection = (connection: SourceConnection) => {
+  const handleTestConnection = (connection: DataConnection) => {
     testConnectionMutation.mutate(connection);
   };
 
-  const handleEditConnection = (connection: SourceConnection) => {
+  const handleEditConnection = (connection: DataConnection) => {
     setEditingConnection(connection);
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteConnection = (connection: SourceConnection) => {
+  const handleDeleteConnection = (connection: DataConnection) => {
     if (confirm(`Are you sure you want to delete "${connection.connectionName}"?`)) {
       deleteConnectionMutation.mutate(connection.connectionId);
     }
@@ -198,8 +198,8 @@ export default function SourceConnections() {
       <div className="border-b border-gray-200 px-6 py-4 text-[14px] bg-[#ffffff]">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Source Connections</h1>
-            <p className="text-gray-600 mt-1">Manage your data source connections</p>
+            <h1 className="text-2xl font-bold text-gray-900">Data Connections</h1>
+            <p className="text-gray-600 mt-1">Manage your data connections</p>
           </div>
           <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
             <DialogTrigger asChild>
@@ -279,12 +279,12 @@ export default function SourceConnections() {
               <div className="space-y-4">
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <p>Loading source connections...</p>
+                    <p>Loading data connections...</p>
                   </div>
                 ) : allConnections.length === 0 ? (
                   <CardContent className="text-center py-8">
                     <Database className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">No source connections found. Create your first connection.</p>
+                    <p className="text-gray-500">No data connections found. Create your first connection.</p>
                   </CardContent>
                 ) : (
                   <>

@@ -84,7 +84,7 @@ export default function AboutPage() {
             
             <div>
               <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                Source Connections
+                Data Connections
               </h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
                 Seamless integration with multiple data sources including databases, APIs, 
