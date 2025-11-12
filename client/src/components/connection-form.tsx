@@ -75,6 +75,7 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
     defaultValues: {
       connectionName: initialData?.connectionName || '',
       applicationName: initialData?.applicationName || '',
+      applicationId: initialData?.applicationId || undefined,
       connectionType: initialData?.connectionType || '',
       host: initialData?.host || '',
       port: initialData?.port || undefined,
@@ -231,7 +232,13 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
               <FormItem>
                 <FormLabel>Application Name</FormLabel>
                 <Select 
-                  onValueChange={field.onChange} 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    const selectedApp = applicationConfigs.find(app => app.applicationName === value);
+                    if (selectedApp) {
+                      form.setValue('applicationId', selectedApp.applicationId);
+                    }
+                  }} 
                   defaultValue={field.value} 
                   disabled={isLoadingApplications}
                   data-testid="select-application-name"

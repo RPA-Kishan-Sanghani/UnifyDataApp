@@ -76,6 +76,7 @@ export const dataConnectionTable = pgTable("data_connection_table", {
   connectionId: serial("connection_id").primaryKey(),
   connectionName: varchar("connection_name", { length: 255 }).notNull(),
   applicationName: varchar("application_name", { length: 100 }),
+  applicationId: integer("application_id"),
   connectionType: varchar("connection_type", { length: 100 }).notNull(),
   host: varchar("host", { length: 255 }),
   port: integer("port"),
@@ -186,6 +187,7 @@ export const insertErrorSchema = z.object({
 export const insertDataConnectionSchema = z.object({
   connectionName: z.string().max(100),
   applicationName: z.string().max(100).optional(),
+  applicationId: z.number().optional(),
   connectionType: z.string().max(50),
   host: z.string().max(100).optional(),
   port: z.number().optional(),

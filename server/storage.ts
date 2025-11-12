@@ -1135,6 +1135,8 @@ export class DatabaseStorage implements IStorage {
         .insert(dataConnectionTable)
         .values({
           connectionName: connection.connectionName,
+          applicationName: connection.applicationName || null,
+          applicationId: connection.applicationId || null,
           connectionType: connection.connectionType,
           host: connection.host || null,
           port: connection.port || null,
