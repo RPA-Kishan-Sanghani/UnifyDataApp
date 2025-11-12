@@ -10,6 +10,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserProfile(userId: string, updates: { firstName?: string; lastName?: string; photoUrl?: string }): Promise<User | undefined>;
 
   // Dashboard metrics
   getDashboardMetrics(userId: string, dateRange?: { start: Date; end: Date }, filters?: {
@@ -258,7 +259,9 @@ export class DatabaseStorage implements IStorage {
         email: users.email,
         password: users.password,
         firstName: users.firstName,
-        lastName: users.lastName
+        lastName: users.lastName,
+        photoUrl: users.photoUrl,
+        tourCompleted: users.tourCompleted
       }).from(users).where(eq(users.id, id));
       return user || undefined;
     } catch (error) {
@@ -275,7 +278,9 @@ export class DatabaseStorage implements IStorage {
         email: users.email,
         password: users.password,
         firstName: users.firstName,
-        lastName: users.lastName
+        lastName: users.lastName,
+        photoUrl: users.photoUrl,
+        tourCompleted: users.tourCompleted
       }).from(users).where(eq(users.username, username));
       return user || undefined;
     } catch (error) {
@@ -292,7 +297,9 @@ export class DatabaseStorage implements IStorage {
         email: users.email,
         password: users.password,
         firstName: users.firstName,
-        lastName: users.lastName
+        lastName: users.lastName,
+        photoUrl: users.photoUrl,
+        tourCompleted: users.tourCompleted
       }).from(users).where(eq(users.email, email));
       return user || undefined;
     } catch (error) {
@@ -321,12 +328,37 @@ export class DatabaseStorage implements IStorage {
           email: users.email,
           password: users.password,
           firstName: users.firstName,
-          lastName: users.lastName
+          lastName: users.lastName,
+          photoUrl: users.photoUrl,
+          tourCompleted: users.tourCompleted
         });
       return user;
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user in database');
+    }
+  }
+
+  async updateUserProfile(userId: string, updates: { firstName?: string; lastName?: string; photoUrl?: string }): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set(updates)
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          password: users.password,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          photoUrl: users.photoUrl,
+          tourCompleted: users.tourCompleted
+        });
+      return updatedUser || undefined;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw new Error('Failed to update user profile');
     }
   }
 

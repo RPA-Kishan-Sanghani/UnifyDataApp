@@ -32,14 +32,62 @@ export function SettingsPage() {
     setLocation('/login');
   };
 
-  const handleSaveProfile = () => {
-    // Here you would typically make an API call to update the profile
-    // For now, we'll just show a success message
-    setIsEditingProfile(false);
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully.",
-    });
+  const handleSaveProfile = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token not found. Please log in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (response.ok) {
+        const { user: updatedUser } = await response.json();
+        
+        // Update user in localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const currentUser = JSON.parse(storedUser);
+          const newUser = { ...currentUser, ...updatedUser };
+          localStorage.setItem('user', JSON.stringify(newUser));
+        }
+        
+        setIsEditingProfile(false);
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+
+        // Reload the page to reflect the updated user data
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update profile",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {

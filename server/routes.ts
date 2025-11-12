@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { generateToken, authMiddleware, type AuthRequest } from "./auth";
 import bcrypt from 'bcryptjs';
 import { trackActivity, trackFilterActivity, trackResourceActivity, ActivityType, ActivityCategory } from "./activity-tracker";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User registration endpoint
@@ -2100,6 +2101,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error updating tour status:', error);
       res.status(500).json({ error: 'Failed to update tour status' });
+    }
+  });
+
+  // Update user profile endpoint
+  const updateProfileSchema = z.object({
+    firstName: z.string().max(100).optional(),
+    lastName: z.string().max(100).optional(),
+    photoUrl: z.string().max(500).url().refine(
+      (url) => {
+        if (!url) return true;
+        const lowerUrl = url.toLowerCase();
+        return lowerUrl.startsWith('https://') && 
+               !lowerUrl.startsWith('data:') && 
+               !lowerUrl.startsWith('javascript:');
+      },
+      { message: 'Photo URL must use HTTPS and cannot use data or javascript schemes' }
+    ).optional().or(z.literal('')),
+  });
+
+  app.put("/api/user/profile", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const validatedData = updateProfileSchema.parse(req.body);
+      
+      // Remove photoUrl if it's an empty string
+      const updates = {
+        ...validatedData,
+        photoUrl: validatedData.photoUrl === '' ? null : validatedData.photoUrl,
+      };
+      
+      const updatedUser = await storage.updateUserProfile(userId, updates as any);
+      
+      if (updatedUser) {
+        // Remove password from response
+        const { password, ...userWithoutPassword } = updatedUser;
+        res.json({ success: true, user: userWithoutPassword });
+      } else {
+        res.status(404).json({ error: 'User not found' });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Invalid profile data', details: error.errors });
+      } else {
+        console.error('Error updating user profile:', error);
+        res.status(500).json({ error: 'Failed to update user profile' });
+      }
     }
   });
 
