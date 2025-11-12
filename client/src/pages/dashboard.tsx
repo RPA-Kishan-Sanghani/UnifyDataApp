@@ -57,9 +57,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <div className="flex-1 max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col overflow-hidden">
-        <div className="flex gap-4 flex-1 overflow-hidden">
+    <div className="flex flex-col min-h-full w-full max-w-full bg-gray-50">
+      <div className="flex-1 w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col min-h-0">
+        <div className="flex gap-4 flex-1 min-w-0 overflow-x-hidden">
           {/* Main Content */}
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             <div className="mb-6 flex-shrink-0">
@@ -67,7 +67,7 @@ export default function Dashboard() {
               <p className="text-gray-600">Monitor and manage your data pipeline operations</p>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-6 pb-6">
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-6 pb-6">
               <MetricsCards 
                 dateRange={getDateRangeFilter()} 
                 refreshKey={refreshKey}
@@ -89,7 +89,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right Sidebar - Filter Panel */}
-          <div className="flex-shrink-0 h-full">
+          <div className="flex-shrink-0 min-w-0 overflow-hidden">
             <DashboardFilterPanel
               filters={filters}
               onFiltersChange={setFilters}
