@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TestTube2, CheckCircle, XCircle, Shield, Database as DatabaseIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { insertDataConnectionSchema, type DataConnection, type InsertDataConnection } from "@shared/schema";
+import { insertDataConnectionSchema, type DataConnection, type InsertDataConnection, type ApplicationConfig } from "@shared/schema";
 import { z } from "zod";
 
 const connectionFormSchema = insertDataConnectionSchema;
@@ -89,6 +89,11 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
   });
 
   const watchedType = form.watch('connectionType');
+
+  // Fetch application names from application_config
+  const { data: applicationConfigs = [], isLoading: isLoadingApplications } = useQuery<ApplicationConfig[]>({
+    queryKey: ['/api/application-configs'],
+  });
 
   useEffect(() => {
     setSelectedType(watchedType);
@@ -225,9 +230,29 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Application Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="" {...field} data-testid="input-application-name" />
-                </FormControl>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value} 
+                  disabled={isLoadingApplications}
+                  data-testid="select-application-name"
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingApplications ? "Loading applications..." : "Select application"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {applicationConfigs.length === 0 && !isLoadingApplications ? (
+                      <div className="p-2 text-sm text-muted-foreground">No applications found</div>
+                    ) : (
+                      applicationConfigs.map((app) => (
+                        <SelectItem key={app.applicationId} value={app.applicationName || ''}>
+                          {app.applicationName}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
