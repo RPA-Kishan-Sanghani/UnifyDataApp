@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Bell, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -27,6 +28,17 @@ export default function Header() {
       description: "You have been successfully logged out.",
     });
     setLocation('/login');
+  };
+
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    } else if (user?.firstName) {
+      return user.firstName.slice(0, 2).toUpperCase();
+    } else if (user?.username) {
+      return user.username.slice(0, 2).toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -72,12 +84,16 @@ export default function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center text-sm" data-testid="button-user-menu">
-                  <img
-                    className="h-8 w-8 rounded-full bg-gray-300"
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                    alt="User avatar"
-                    data-testid="img-avatar"
-                  />
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage 
+                      src={user?.photoUrl || ""} 
+                      alt={user?.username || "User"}
+                      data-testid="img-avatar"
+                    />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
                   <ChevronDown className="ml-2 text-gray-400 text-xs" />
                 </Button>
               </DropdownMenuTrigger>
