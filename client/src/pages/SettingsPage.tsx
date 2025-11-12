@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { User, Settings, LogOut, Key, Database, FileText } from "lucide-react";
+import { User, Settings, LogOut, Key, Database, FileText, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,11 +17,54 @@ export function SettingsPage() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     photoUrl: user?.photoUrl || "",
   });
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setProfileData(prev => ({
+        ...prev,
+        photoUrl: base64String
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePhotoClick = () => {
+    if (isEditingProfile && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -147,12 +190,39 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center space-x-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={user?.photoUrl || ""} alt={user?.username || "User"} />
-                  <AvatarFallback className="text-lg">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar 
+                    className={`h-20 w-20 ${isEditingProfile ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                    onClick={handlePhotoClick}
+                  >
+                    <AvatarImage 
+                      src={isEditingProfile ? profileData.photoUrl : (user?.photoUrl || "")} 
+                      alt={user?.username || "User"} 
+                    />
+                    <AvatarFallback className="text-lg">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isEditingProfile && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
+                      onClick={handlePhotoClick}
+                      type="button"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    data-testid="input-photo-file"
+                  />
+                </div>
                 <div className="space-y-2">
                   <h3 className="text-lg font-medium">
                     {user?.firstName && user?.lastName
@@ -162,6 +232,9 @@ export function SettingsPage() {
                         : user?.username || 'User'}
                   </h3>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  {isEditingProfile && (
+                    <p className="text-xs text-muted-foreground">Click the avatar or camera icon to upload a photo</p>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -204,17 +277,6 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="photoUrl">Photo URL</Label>
-                  <Input
-                    id="photoUrl"
-                    value={isEditingProfile ? profileData.photoUrl : (user?.photoUrl || "")}
-                    disabled={!isEditingProfile}
-                    onChange={(e) => handleInputChange('photoUrl', e.target.value)}
-                    placeholder="Enter photo URL (e.g., https://example.com/photo.jpg)"
-                    data-testid="input-photo-url"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
@@ -233,6 +295,7 @@ export function SettingsPage() {
                     disabled={true}
                     placeholder="Email cannot be changed"
                     className="bg-gray-100 text-gray-500 cursor-not-allowed"
+                    data-testid="input-email"
                   />
                 </div>
               </div>

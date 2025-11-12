@@ -2108,15 +2108,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const updateProfileSchema = z.object({
     firstName: z.string().max(100).optional(),
     lastName: z.string().max(100).optional(),
-    photoUrl: z.string().max(500).url().refine(
+    photoUrl: z.string().refine(
       (url) => {
         if (!url) return true;
         const lowerUrl = url.toLowerCase();
-        return lowerUrl.startsWith('https://') && 
-               !lowerUrl.startsWith('data:') && 
-               !lowerUrl.startsWith('javascript:');
+        // Allow HTTPS URLs or base64 data URLs for images, but reject javascript: schemes
+        return (
+          lowerUrl.startsWith('https://') || 
+          lowerUrl.startsWith('data:image/')
+        ) && !lowerUrl.startsWith('javascript:');
       },
-      { message: 'Photo URL must use HTTPS and cannot use data or javascript schemes' }
+      { message: 'Photo must be either an HTTPS URL or an uploaded image' }
     ).optional().or(z.literal('')),
   });
 
