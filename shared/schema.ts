@@ -145,9 +145,11 @@ export const configTable = pgTable("config_table", {
   activeFlag: varchar("active_flag", { length: 1 }).default("Y"),
   fullDataRefreshFlag: varchar("full_data_refresh_flag", { length: 1 }).default("N"),
   connectionId: integer("source_connection_id"),
+  sourceApplicationId: integer("source_application_id"),
   targetLayer: varchar("target_layer", { length: 50 }),
   targetSystem: varchar("target_system", { length: 100 }),
   targetConnectionId: integer("target_connection_id"),
+  targetApplicationId: integer("target_application_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

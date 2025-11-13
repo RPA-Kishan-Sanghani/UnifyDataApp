@@ -133,6 +133,7 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
         undefined,
       sourceSystem: formatSystemName(pipeline?.sourceSystem),
       connectionId: pipeline?.connectionId ?? undefined,
+      sourceApplicationId: pipeline?.sourceApplicationId ?? undefined,
       sourceType: pipeline?.sourceType ? 
         pipeline.sourceType.charAt(0).toUpperCase() + pipeline.sourceType.slice(1).toLowerCase() : 
         undefined,
@@ -144,6 +145,7 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
       targetLayer: pipeline?.targetLayer || undefined,
       targetSystem: formatSystemName(pipeline?.targetSystem),
       targetConnectionId: pipeline?.targetConnectionId || undefined,
+      targetApplicationId: pipeline?.targetApplicationId || undefined,
       targetType: pipeline?.targetType ? 
         pipeline.targetType.charAt(0).toUpperCase() + pipeline.targetType.slice(1).toLowerCase() : 
         undefined,
@@ -620,7 +622,21 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
                         </FormLabel>
                         <Select 
                           onValueChange={(value) => {
-                            field.onChange(value ? parseInt(value) : undefined);
+                            const connectionId = value ? parseInt(value) : undefined;
+                            field.onChange(connectionId);
+                            
+                            // Auto-fetch and set application_id from the selected connection
+                            if (connectionId) {
+                              const selectedConnection = connections.find(c => c.connectionId === connectionId);
+                              if (selectedConnection?.applicationId) {
+                                form.setValue('sourceApplicationId', selectedConnection.applicationId);
+                              } else {
+                                form.setValue('sourceApplicationId', undefined);
+                              }
+                            } else {
+                              form.setValue('sourceApplicationId', undefined);
+                            }
+                            
                             // Reset schema and table when connection changes
                             form.setValue('sourceSchemaName', undefined);
                             form.setValue('sourceTableName', undefined);
@@ -937,7 +953,22 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
                           </TooltipProvider>
                         </FormLabel>
                         <Select 
-                          onValueChange={(value) => field.onChange(Number(value))} 
+                          onValueChange={(value) => {
+                            const connectionId = Number(value);
+                            field.onChange(connectionId);
+                            
+                            // Auto-fetch and set application_id from the selected connection
+                            if (connectionId) {
+                              const selectedConnection = targetConnections.find(c => c.connectionId === connectionId);
+                              if (selectedConnection?.applicationId) {
+                                form.setValue('targetApplicationId', selectedConnection.applicationId);
+                              } else {
+                                form.setValue('targetApplicationId', undefined);
+                              }
+                            } else {
+                              form.setValue('targetApplicationId', undefined);
+                            }
+                          }} 
                           value={field.value?.toString() || ''}
                           disabled={!selectedTargetSystem}
                         >
