@@ -2158,6 +2158,25 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
+      console.log('🔍 Debugging FIN_CCFD_branch example...');
+      
+      // Check specific table mentioned by user
+      const finCheck = await userPool.query(`
+        SELECT 
+          dd.config_key as dd_config_key,
+          dd.table_name as dd_table_name,
+          ct.config_key as ct_config_key,
+          ct.target_table_name as ct_target_table,
+          ct.target_application_id,
+          ct.source_application_id,
+          COALESCE(ct.target_application_id, ct.source_application_id) as coalesced_app_id
+        FROM data_dictionary_table dd
+        LEFT JOIN config_table ct ON dd.config_key = ct.config_key
+        WHERE dd.table_name = 'FIN_CCFD_branch'
+        LIMIT 5
+      `);
+      console.log('📋 FIN_CCFD_branch data:', JSON.stringify(finCheck.rows, null, 2));
+      
       // Use COALESCE to check target_application_id first, then fall back to source_application_id
       // This works with existing data and provides a migration path
       const query = `
@@ -2171,7 +2190,9 @@ export class DatabaseStorage implements IStorage {
         ORDER BY ac.application_name
       `;
       
+      console.log('🚀 Executing COALESCE query...');
       const result = await userPool.query(query);
+      console.log(`📦 Found ${result.rows.length} applications:`, result.rows);
       
       return result.rows;
     } catch (error) {
