@@ -2184,6 +2184,10 @@ export class DatabaseStorage implements IStorage {
         const appCount = await userPool.query('SELECT COUNT(*) as count FROM application_config');
         console.log('🎯 Application config entries:', appCount.rows[0]?.count);
         
+        // Show actual application_id values
+        const appIds = await userPool.query('SELECT application_id, application_name FROM application_config ORDER BY application_id');
+        console.log('📋 Application IDs:', appIds.rows);
+        
         // Check target_application_id column in config_table
         const columnCheck = await userPool.query(`
           SELECT column_name 
@@ -2200,6 +2204,24 @@ export class DatabaseStorage implements IStorage {
           WHERE target_application_id IS NOT NULL
         `);
         console.log('✅ Config entries with target_application_id:', targetAppCount.rows[0]?.count);
+        
+        // Show actual target_application_id values
+        const targetAppIds = await userPool.query(`
+          SELECT DISTINCT target_application_id 
+          FROM config_table 
+          WHERE target_application_id IS NOT NULL
+          ORDER BY target_application_id
+        `);
+        console.log('🔑 Target application IDs in config_table:', targetAppIds.rows.map(r => r.target_application_id));
+        
+        // Check if there's a match
+        const matchCheck = await userPool.query(`
+          SELECT COUNT(*) as count
+          FROM config_table ct
+          INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
+          WHERE ct.target_application_id IS NOT NULL
+        `);
+        console.log('🔄 Matching records between config and application:', matchCheck.rows[0]?.count);
       }
       
       // Get distinct target applications from data dictionary entries
