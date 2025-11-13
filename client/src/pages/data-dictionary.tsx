@@ -724,11 +724,22 @@ export function DataDictionary() {
                                           </TableCell>
                                           <TableCell>
                                             {isEditing ? (
-                                              <Input
+                                              <Select
                                                 value={editValues.dataType || ''}
-                                                onChange={(e) => updateEditingValue(entry.dataDictionaryKey, 'dataType', e.target.value)}
-                                                className="w-24"
-                                              />
+                                                onValueChange={(value) => updateEditingValue(entry.dataDictionaryKey, 'dataType', value)}
+                                              >
+                                                <SelectTrigger className="w-32" data-testid={`select-data-type-${entry.dataDictionaryKey}`}>
+                                                  <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {(entry.sourceSystem && DATABASE_DATATYPES[entry.sourceSystem] 
+                                                    ? DATABASE_DATATYPES[entry.sourceSystem]
+                                                    : Object.values(DATABASE_DATATYPES).flat()
+                                                  ).map((type) => (
+                                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
                                             ) : (
                                               <Badge variant="outline">{entry.dataType}</Badge>
                                             )}
