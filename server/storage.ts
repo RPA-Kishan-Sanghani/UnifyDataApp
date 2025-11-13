@@ -2152,21 +2152,23 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getDataDictionaryTargetApplications(userId: string): Promise<Array<{ applicationName: string }>> {
+  async getDataDictionaryTargetApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>> {
     const userPoolResult = await getUserSpecificPool(userId);
     if (!userPoolResult) return [];
     const { pool: userPool } = userPoolResult;
 
     try {
-      // Get distinct target systems from data dictionary entries via config_table
+      // Get distinct target applications from data dictionary entries
+      // Join: data_dictionary_table -> config_table -> application_config
       const query = `
         SELECT DISTINCT 
-          ct.target_system as "applicationName"
+          ac.application_id as "applicationId",
+          ac.application_name as "applicationName"
         FROM data_dictionary_table dd
         INNER JOIN config_table ct ON dd.config_key = ct.config_key
-        WHERE ct.target_system IS NOT NULL 
-          AND ct.target_system != ''
-        ORDER BY ct.target_system
+        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
+        WHERE ct.target_application_id IS NOT NULL
+        ORDER BY ac.application_name
       `;
       
       const result = await userPool.query(query);
@@ -2290,7 +2292,6 @@ export class DatabaseStorage implements IStorage {
               isNotNull: dataDictionaryTable.isNotNull,
               isPrimaryKey: dataDictionaryTable.isPrimaryKey,
               isForeignKey: dataDictionaryTable.isForeignKey,
-              foreignKeyTable: dataDictionaryTable.foreignKeyTable,
               activeFlag: dataDictionaryTable.activeFlag,
               columnDescription: dataDictionaryTable.columnDescription,
               createdBy: dataDictionaryTable.createdBy,
@@ -2319,7 +2320,6 @@ export class DatabaseStorage implements IStorage {
               isNotNull: dataDictionaryTable.isNotNull,
               isPrimaryKey: dataDictionaryTable.isPrimaryKey,
               isForeignKey: dataDictionaryTable.isForeignKey,
-              foreignKeyTable: dataDictionaryTable.foreignKeyTable,
               activeFlag: dataDictionaryTable.activeFlag,
               columnDescription: dataDictionaryTable.columnDescription,
               createdBy: dataDictionaryTable.createdBy,
