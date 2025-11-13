@@ -55,6 +55,29 @@ export default function DataLineagePage() {
   // Fetch lineage records
   const { data: lineageRecords = [], isLoading, refetch } = useQuery<DataLineageDetail[]>({
     queryKey: ['/api/lineage/records', filters],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      
+      // Add filters to query params
+      if (filters.sourceApplicationId) params.append('sourceApplicationId', filters.sourceApplicationId);
+      if (filters.targetApplicationId) params.append('targetApplicationId', filters.targetApplicationId);
+      if (filters.sourceSchema) params.append('sourceSchema', filters.sourceSchema);
+      if (filters.targetSchema) params.append('targetSchema', filters.targetSchema);
+      if (filters.sourceLayer) params.append('sourceLayer', filters.sourceLayer);
+      if (filters.targetLayer) params.append('targetLayer', filters.targetLayer);
+      if (filters.sourceTable) params.append('sourceTable', filters.sourceTable);
+      if (filters.targetTable) params.append('targetTable', filters.targetTable);
+      if (filters.globalSearch) params.append('globalSearch', filters.globalSearch);
+      
+      const url = `/api/lineage/records${params.toString() ? '?' + params.toString() : ''}`;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      const res = await fetch(url, { credentials: "include", headers });
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return await res.json();
+    },
     enabled: true,
   });
 
