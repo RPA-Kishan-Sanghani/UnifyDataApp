@@ -2152,53 +2152,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getDataDictionaryTargetApplications(userId: string): Promise<Array<{ configKey: number; applicationId: number; applicationName: string; executionLayer: string; targetSystem: string }>> {
-    const userPoolResult = await getUserSpecificPool(userId);
-    if (!userPoolResult) return [];
-    const { pool: userPool } = userPoolResult;
-
-    try {
-      // Check if tables exist
-      const tableCheckQuery = `
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config'
-        ) as has_app_config,
-        EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'config_table'
-        ) as has_config_table;
-      `;
-      const tableCheckResult = await userPool.query(tableCheckQuery);
-      const hasApplicationConfig = tableCheckResult.rows[0]?.has_app_config || false;
-      const hasConfigTable = tableCheckResult.rows[0]?.has_config_table || false;
-
-      if (!hasApplicationConfig || !hasConfigTable) {
-        return [];
-      }
-
-      // Get config_key with target application details
-      const query = `
-        SELECT DISTINCT 
-          ct.config_key as "configKey",
-          ac.application_id as "applicationId",
-          ac.application_name as "applicationName",
-          ct.execution_layer as "executionLayer",
-          ct.target_system as "targetSystem"
-        FROM config_table ct
-        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
-        WHERE ct.target_application_id IS NOT NULL
-        ORDER BY ac.application_name, ct.config_key
-      `;
-      
-      const result = await userPool.query(query);
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching data dictionary target applications:', error);
-      return [];
-    }
-  }
-
   async getMetadata(userId: string, type: string): Promise<string[]> {
     // Static metadata for dropdowns - in production this could come from a metadata table
     const metadataMap: Record<string, string[]> = {
