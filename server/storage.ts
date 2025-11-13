@@ -1967,7 +1967,42 @@ export class DatabaseStorage implements IStorage {
       }
 
       const result = await userPool.query(query, params);
-      return result.rows as ConfigRecord[];
+      
+      // Convert snake_case column names to camelCase
+      return result.rows.map((row: any) => ({
+        configKey: row.config_key,
+        executionLayer: row.execution_layer,
+        sourceSystem: row.source_system,
+        sourceType: row.source_type,
+        sourceFilePath: row.source_file_path,
+        sourceFileName: row.source_file_name,
+        sourceFileDelimiter: row.source_file_delimiter,
+        sourceSchemaName: row.source_schema_name,
+        sourceTableName: row.source_table_name,
+        targetType: row.target_type,
+        targetFilePath: row.target_file_path,
+        targetFileDelimiter: row.target_file_delimiter,
+        targetSchemaName: row.target_schema_name,
+        temporaryTargetTable: row.temporary_target_table,
+        targetTableName: row.target_table_name,
+        loadType: row.load_type,
+        primaryKey: row.primary_key,
+        effectiveDate: row.effective_date_column,
+        md5Columns: row.md5_columns,
+        customCode: row.custom_code,
+        executionSequence: row.execution_sequence,
+        enableDynamicSchema: row.enable_dynamic_schema,
+        activeFlag: row.active_flag,
+        fullDataRefreshFlag: row.full_data_refresh_flag,
+        connectionId: row.source_connection_id,
+        sourceApplicationId: row.source_application_id,
+        targetLayer: row.target_layer,
+        targetSystem: row.target_system,
+        targetConnectionId: row.target_connection_id,
+        targetApplicationId: row.target_application_id,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      })) as ConfigRecord[];
     } catch (error) {
       console.error('Error fetching pipelines:', error);
       throw new Error(`Failed to fetch pipelines: ${error instanceof Error ? error.message : 'Unknown error'}`);
