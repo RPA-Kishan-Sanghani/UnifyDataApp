@@ -15,14 +15,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { DataPagination } from '@/components/ui/data-pagination';
 import type { ReconciliationConfig, InsertReconciliationConfig, UpdateReconciliationConfig } from '@shared/schema';
 import { ReconciliationForm } from '@/components/reconciliation-form';
-
-interface ReconciliationFilters {
-  search: string;
-  executionLayer: string;
-  reconType: string;
-  status: string;
-  targetApplicationId: string;
-}
+import ReconciliationFilterPanel, { type ReconciliationFilters } from '@/components/reconciliation-filter-panel';
 
 export function Reconciliation() {
   const [filters, setFilters] = useState<ReconciliationFilters>({
@@ -194,62 +187,11 @@ export function Reconciliation() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Filter className="h-5 w-5 mr-2" />
-              Filters
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by table name..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="pl-10"
-                  data-testid="input-search-reconciliation"
-                />
-              </div>
-
-              <Select value={filters.executionLayer || "all"} onValueChange={(value) => setFilters(prev => ({ ...prev, executionLayer: value === 'all' ? '' : value }))}>
-                <SelectTrigger data-testid="select-execution-layer">
-                  <SelectValue placeholder="Execution Layer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Layers</SelectItem>
-                  <SelectItem value="bronze">Bronze</SelectItem>
-                  <SelectItem value="silver">Silver</SelectItem>
-                  <SelectItem value="gold">Gold</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.reconType || "all"} onValueChange={(value) => setFilters(prev => ({ ...prev, reconType: value === 'all' ? '' : value }))}>
-                <SelectTrigger data-testid="select-recon-type">
-                  <SelectValue placeholder="Reconciliation Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="count_check">Count Check</SelectItem>
-                  <SelectItem value="amount_check">Amount Check</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.status || "all"} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value === 'all' ? '' : value }))}>
-                <SelectTrigger data-testid="select-status">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Y">Active</SelectItem>
-                  <SelectItem value="N">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <ReconciliationFilterPanel
+          filters={filters}
+          onFiltersChange={setFilters}
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/reconciliation-configs'] })}
+        />
 
         {/* Reconciliation Config List */}
         <Card>

@@ -15,14 +15,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { DataPagination } from '@/components/ui/data-pagination';
 import type { DataQualityConfig, InsertDataQualityConfig, UpdateDataQualityConfig } from '@shared/schema';
 import { DataQualityForm } from '@/components/data-quality-form';
-
-interface DataQualityFilters {
-  search: string;
-  executionLayer: string;
-  validationType: string;
-  status: string;
-  targetApplicationId: string;
-}
+import DataQualityFilterPanel, { type DataQualityFilters } from '@/components/data-quality-filter-panel';
 
 export function DataQuality() {
   const [filters, setFilters] = useState<DataQualityFilters>({
@@ -188,66 +181,11 @@ export function DataQuality() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Filter className="h-5 w-5 mr-2" />
-              Filters
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by table name..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="pl-10"
-                  data-testid="input-search-data-quality"
-                />
-              </div>
-
-              <Select value={filters.executionLayer || "all"} onValueChange={(value) => setFilters(prev => ({ ...prev, executionLayer: value === 'all' ? '' : value }))}>
-                <SelectTrigger data-testid="select-execution-layer">
-                  <SelectValue placeholder="Execution Layer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Layers</SelectItem>
-                  <SelectItem value="Bronze">Bronze</SelectItem>
-                  <SelectItem value="Silver">Silver</SelectItem>
-                  <SelectItem value="Gold">Gold</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.validationType || "all"} onValueChange={(value) => setFilters(prev => ({ ...prev, validationType: value === 'all' ? '' : value }))}>
-                <SelectTrigger data-testid="select-validation-type">
-                  <SelectValue placeholder="Validation Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Custom Query Check">Custom Query Check</SelectItem>
-                  <SelectItem value="List Value Check">List Value Check</SelectItem>
-                  <SelectItem value="Duplicate Check">Duplicate Check</SelectItem>
-                  <SelectItem value="File Format Check">File Format Check</SelectItem>
-                  <SelectItem value="Referential Integrity Check">Referential Integrity Check</SelectItem>
-                  <SelectItem value="Null Check">Null Check</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filters.status || "all"} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value === 'all' ? '' : value }))}>
-                <SelectTrigger data-testid="select-status">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Y">Active</SelectItem>
-                  <SelectItem value="N">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <DataQualityFilterPanel
+          filters={filters}
+          onFiltersChange={setFilters}
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/data-quality-configs'] })}
+        />
 
         {/* Configurations List */}
         <Card>
