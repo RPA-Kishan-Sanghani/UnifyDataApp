@@ -1,0 +1,260 @@
+You have access to an external Postgres database (config DB) containing a table named data_lineage_detail.
+Below is the list of all columns and their meanings:
+
+lineage_id – Unique auto-generated identifier for each lineage record.
+lineage_type – Type of mapping: straight pass, derived, rename, new column.
+application_name – Name of the application or pipeline generating the lineage.
+config_key – Reference key to the ETL/ELT configuration/mapping definition.
+data_element_id – Business data element identifier linked to glossary/dictionary.
+source_layer – Logical layer where the source resides.
+source_system – Source system name.
+source_schema_name – Source schema name.
+source_table_name – Source table name.
+source_column – Source column name.
+source_datatype – Source column data type.
+target_layer – Logical layer where the target resides.
+target_system – Target system name.
+target_schema_name – Target schema name.
+target_table_name – Target table name.
+target_column – Target column name.
+target_datatype – Target column data type.
+transformation_logic – SQL or transformation expression.
+filter_condition – WHERE/filter logic applied during ETL.
+update_at – Last updated timestamp.
+created_by – Creator of the lineage record.
+created_ts – Created timestamp.
+effective_date – Lineage valid start.
+expiry_date – Lineage valid end.
+active_flag – Y/N active indicator.
+
+✅ TASK: Build a New Page Called “Data Lineage”
+
+This page must show table-level and attribute-level lineage, supporting full forward and backward tracing.
+
+🎛️ Required Filters
+
+Each filter must dynamically update the lineage results and the lineage diagram.
+
+1. Source Application Name
+
+Join Logic:
+
+Use config_key from data_lineage_detail
+
+Join to config_table to retrieve source_application_id
+
+Join to application_config on application_id
+
+Display application name in dropdown
+
+2. Target Application Name
+
+Join Logic:
+
+Use config_key from data_lineage_detail
+
+Join to config_table to retrieve target_application_id
+
+Join to application_config on application_id
+
+Display application name in dropdown
+
+3. Source Schema Name
+4. Target Schema Name
+5. Source Layer
+6. Target Layer
+7. Source Table Name
+8. Target Table Name
+9. Global Search Box
+
+Search both source and target:
+
+table names
+
+attribute/column names
+
+📊 Lineage Diagram Requirements
+Diagram Layout
+
+Source on left, target on right
+
+Display layers in sequence: Raw → Bronze → Silver → Gold → Mart
+
+Draw directional arrows between layers
+
+Support multi-hop lineage (e.g., Salesforce → Bronze → Silver → Gold)
+
+Node Types
+
+Support interactive nodes for:
+
+Table
+
+Column
+
+Derived column
+
+Renamed column
+
+New column
+
+Each node should show tooltips:
+
+Datatype
+
+Transformation logic (if applicable)
+
+Lineage type (straight pass, rename, derived, new)
+
+Edge Metadata
+
+Each arrow must optionally show:
+
+Mapping type
+
+Transformation logic (preview)
+
+Filter condition (preview)
+
+🔍 LINEAGE TRAVERSAL LOGIC (Node.js In-Memory Graph)
+
+All rows from data_lineage_detail will be fetched once and stored in memory.
+Build an in-memory lineage graph for fast recursive traversal.
+
+When a user selects a table, column, or layer:
+1. Upstream Trace (Backward Lineage)
+
+Find all records where the selected element appears as target (table or column).
+Then trace recursively until no further upstream source exists.
+
+2. Downstream Trace (Forward Lineage)
+
+Find all records where the selected element appears as source (table or column).
+Then trace recursively until no further downstream target exists.
+
+3. Derived Column Logic
+
+For lineage_type = derived column:
+
+Support multiple source columns → one target
+
+Support one source → multiple derived outputs
+
+Expand all branches
+
+Merge graph paths visually
+
+4. Rename Column Logic
+
+Treat renamed columns as equivalent during traversal
+
+Allow clean continuity across layers
+
+5. New Column Logic
+
+No upstream lineage
+
+Still allow forward lineage
+
+⚙️ Node.js Optimized Enhancements
+1. In-Memory Graph Structures
+
+Use fast lookup maps such as:
+
+sourceIndex: { "<schema>.<table>.<column>": [...] }
+targetIndex: { "<schema>.<table>.<column>": [...] }
+tableIndex:  { "<schema>.<table>": [...] }
+
+2. Caching
+
+Cache the constructed lineage graph for fast UI load.
+
+3. Layer & App Grouping
+
+Visually group nodes by:
+
+Logical layer
+
+Application
+
+4. Multipath Lineage
+
+If multiple upstream/downstream paths exist:
+
+Display all
+
+Allow expand/collapse
+
+5. Missing Lineage
+
+Handle incomplete lineage:
+
+Show “Unknown Source” / “Unknown Target”
+
+Do not break diagram flow
+
+6. Click-to-Inspect Panel
+
+Clicking a node should show:
+
+Data type
+
+Transformation logic
+
+Filter condition
+
+Effective/expiry date
+
+Full incoming/outgoing connections
+
+7. View Modes
+
+Toggle between:
+
+Table-only lineage
+
+Column-level lineage
+
+Combined view
+
+8. Export Options
+
+Allow export:
+
+Diagram as PNG/SVG
+
+Lineage results as CSV/Excel
+
+9. Error Handling
+
+Show user-friendly errors for:
+
+Missing application joins
+
+No matching lineage
+
+Invalid filters
+
+Missing config_key mapping
+
+🧩 Final Deliverable Expectations
+
+The “Data Lineage” page must:
+
+Load all rows from data_lineage_detail once
+
+Build a complete in-memory lineage graph
+
+Support full upstream/downstream recursive mapping
+
+Visualize lineage across multiple layers
+
+Render clean, interactive diagrams with tooltips
+
+Correctly process derived/rename/new columns
+
+Apply all filters
+
+Provide drilldown details
+
+Perform fast and handle incomplete lineage gracefully
