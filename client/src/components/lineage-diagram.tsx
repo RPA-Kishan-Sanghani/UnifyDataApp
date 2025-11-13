@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -213,11 +213,11 @@ export default function LineageDiagram({
     }));
   }, [lineageEdges]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   // Update nodes and edges when data changes
-  useMemo(() => {
+  useEffect(() => {
     setNodes(flowNodes);
     setEdges(flowEdges);
   }, [flowNodes, flowEdges, setNodes, setEdges]);
