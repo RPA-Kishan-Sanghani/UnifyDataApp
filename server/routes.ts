@@ -608,8 +608,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         database: userDbSettings.database,
         user: userDbSettings.username,
         password: userDbSettings.password,
-        ssl: userDbSettings.sslEnabled,
-        connectionTimeoutMillis: userDbSettings.connectionTimeout,
+        ssl: userDbSettings.sslEnabled ?? undefined,
+        connectionTimeoutMillis: userDbSettings.connectionTimeout ?? undefined,
       });
 
       await client.connect();
@@ -1785,8 +1785,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         database: configDbSettings.database,
         user: configDbSettings.username,
         password: configDbSettings.password,
-        ssl: configDbSettings.sslEnabled,
-        connectionTimeoutMillis: configDbSettings.connectionTimeout,
+        ssl: configDbSettings.sslEnabled ?? undefined,
+        connectionTimeoutMillis: configDbSettings.connectionTimeout ?? undefined,
       });
 
       await configClient.connect();

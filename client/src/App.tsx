@@ -13,6 +13,7 @@ import { DataDictionary } from "@/pages/data-dictionary";
 import { DataDictionaryFormPage } from "./pages/data-dictionary-form-page";
 import { Reconciliation } from "@/pages/reconciliation";
 import { DataQuality } from "@/pages/data-quality";
+import DataLineagePage from "@/pages/data-lineage";
 import CustomDashboard from "@/pages/CustomDashboard";
 import LoginPage from "@/pages/LoginPage";
 import HelpPage from "@/pages/HelpPage";
@@ -82,6 +83,7 @@ function Router() {
       <Route path="/data-dictionary/form/:id" component={() => <ProtectedRoute component={DataDictionaryFormPage} />} />
       <Route path="/data-quality" component={() => <ProtectedRoute component={DataQuality} />} />
       <Route path="/reconciliation" component={() => <ProtectedRoute component={Reconciliation} />} />
+      <Route path="/data-lineage" component={() => <ProtectedRoute component={DataLineagePage} />} />
       <Route path="/custom-dashboard" component={() => <ProtectedRoute component={CustomDashboard} />} />
       <Route component={NotFound} />
     </Switch>

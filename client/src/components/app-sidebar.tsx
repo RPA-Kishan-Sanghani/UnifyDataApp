@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Database, Home, Database as DataIcon, GitBranch, FileText, RefreshCw, BarChart3, Settings, LayoutDashboard, HelpCircle, BookOpen, Play } from "lucide-react";
+import { Database, Home, Database as DataIcon, GitBranch, FileText, RefreshCw, BarChart3, Settings, LayoutDashboard, HelpCircle, BookOpen, Play, Network } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,7 @@ const navigationItems = [
   { path: '/data-dictionary', label: 'Data Dictionary', icon: FileText, testId: 'link-data-dictionary' },
   { path: '/reconciliation', label: 'Data Reconciliation', icon: RefreshCw, testId: 'link-data-reconciliation' },
   { path: '/data-quality', label: 'Data Quality', icon: BarChart3, testId: 'link-data-quality' },
+  { path: '/data-lineage', label: 'Data Lineage', icon: Network, testId: 'link-data-lineage' },
   { path: '/custom-dashboard', label: 'Custom Dashboard', icon: LayoutDashboard, testId: 'link-custom-dashboard' },
 ];
 
