@@ -95,51 +95,57 @@ export default function DataLineagePage() {
 
     lineageRecords.forEach((record) => {
       if (viewMode === 'table' || viewMode === 'combined') {
-        // Add table-level nodes
-        const sourceTableId = getNodeId(record.sourceSchemaName, record.sourceTableName, null);
-        const targetTableId = getNodeId(record.targetSchemaName, record.targetTableName, null);
-
-        if (sourceTableId && !nodeSet.has(sourceTableId) && record.sourceTableName) {
-          nodeSet.add(sourceTableId);
-          nodes.push({
-            id: sourceTableId,
-            label: record.sourceTableName,
-            type: 'table',
-            layer: record.sourceLayer || undefined,
-            schema: record.sourceSchemaName || undefined,
-            application: record.applicationName || undefined,
-            metadata: {
-              system: record.sourceSystem,
-              configKey: record.configKey,
-            }
-          });
+        // Add table-level nodes (ignore column-level details for aggregation)
+        if (record.sourceTableName) {
+          const sourceTableId = getNodeId(record.sourceSchemaName, record.sourceTableName, null);
+          if (sourceTableId && !nodeSet.has(sourceTableId)) {
+            nodeSet.add(sourceTableId);
+            nodes.push({
+              id: sourceTableId,
+              label: record.sourceTableName,
+              type: 'table',
+              layer: record.sourceLayer || undefined,
+              schema: record.sourceSchemaName || undefined,
+              application: record.applicationName || undefined,
+              metadata: {
+                system: record.sourceSystem,
+                configKey: record.configKey,
+              }
+            });
+          }
         }
 
-        if (targetTableId && !nodeSet.has(targetTableId) && record.targetTableName) {
-          nodeSet.add(targetTableId);
-          nodes.push({
-            id: targetTableId,
-            label: record.targetTableName,
-            type: 'table',
-            layer: record.targetLayer || undefined,
-            schema: record.targetSchemaName || undefined,
-            application: record.applicationName || undefined,
-            metadata: {
-              system: record.targetSystem,
-              configKey: record.configKey,
-            }
-          });
+        if (record.targetTableName) {
+          const targetTableId = getNodeId(record.targetSchemaName, record.targetTableName, null);
+          if (targetTableId && !nodeSet.has(targetTableId)) {
+            nodeSet.add(targetTableId);
+            nodes.push({
+              id: targetTableId,
+              label: record.targetTableName,
+              type: 'table',
+              layer: record.targetLayer || undefined,
+              schema: record.targetSchemaName || undefined,
+              application: record.applicationName || undefined,
+              metadata: {
+                system: record.targetSystem,
+                configKey: record.configKey,
+              }
+            });
+          }
         }
 
-        // Add table-level edge only if both nodes exist
-        if (sourceTableId && targetTableId && nodeSet.has(sourceTableId) && nodeSet.has(targetTableId)) {
+        // Add table-level edge (deduplicate by table pair)
+        if (record.sourceTableName && record.targetTableName) {
+          const sourceTableId = getNodeId(record.sourceSchemaName, record.sourceTableName, null);
+          const targetTableId = getNodeId(record.targetSchemaName, record.targetTableName, null);
           const tableEdgeId = `${sourceTableId}->${targetTableId}`;
-          if (!edges.find(e => e.id === tableEdgeId)) {
+          
+          if (sourceTableId && targetTableId && !edges.find(e => e.id === tableEdgeId)) {
             edges.push({
               id: tableEdgeId,
               source: sourceTableId,
               target: targetTableId,
-            label: record.lineageType,
+              label: record.lineageType,
               transformationLogic: record.transformationLogic || undefined,
               filterCondition: record.filterCondition || undefined,
             });
@@ -149,45 +155,51 @@ export default function DataLineagePage() {
 
       if (viewMode === 'column' || viewMode === 'combined') {
         // Add column-level nodes
-        const sourceColId = getNodeId(record.sourceSchemaName, record.sourceTableName, record.sourceColumn);
-        const targetColId = getNodeId(record.targetSchemaName, record.targetTableName, record.targetColumn);
-
-        if (sourceColId && !nodeSet.has(sourceColId) && record.sourceColumn) {
-          nodeSet.add(sourceColId);
-          nodes.push({
-            id: sourceColId,
-            label: `${record.sourceTableName}.${record.sourceColumn}`,
-            type: 'column',
-            layer: record.sourceLayer || undefined,
-            schema: record.sourceSchemaName || undefined,
-            application: record.applicationName || undefined,
-            metadata: {
-              datatype: record.sourceDatatype,
-              tableName: record.sourceTableName,
-            }
-          });
+        if (record.sourceColumn && record.sourceTableName) {
+          const sourceColId = getNodeId(record.sourceSchemaName, record.sourceTableName, record.sourceColumn);
+          if (sourceColId && !nodeSet.has(sourceColId)) {
+            nodeSet.add(sourceColId);
+            nodes.push({
+              id: sourceColId,
+              label: `${record.sourceTableName}.${record.sourceColumn}`,
+              type: 'column',
+              layer: record.sourceLayer || undefined,
+              schema: record.sourceSchemaName || undefined,
+              application: record.applicationName || undefined,
+              metadata: {
+                datatype: record.sourceDatatype,
+                tableName: record.sourceTableName,
+              }
+            });
+          }
         }
 
-        if (targetColId && !nodeSet.has(targetColId) && record.targetColumn) {
-          nodeSet.add(targetColId);
-          nodes.push({
-            id: targetColId,
-            label: `${record.targetTableName}.${record.targetColumn}`,
-            type: 'column',
-            layer: record.targetLayer || undefined,
-            schema: record.targetSchemaName || undefined,
-            application: record.applicationName || undefined,
-            metadata: {
-              datatype: record.targetDatatype,
-              tableName: record.targetTableName,
-            }
-          });
+        if (record.targetColumn && record.targetTableName) {
+          const targetColId = getNodeId(record.targetSchemaName, record.targetTableName, record.targetColumn);
+          if (targetColId && !nodeSet.has(targetColId)) {
+            nodeSet.add(targetColId);
+            nodes.push({
+              id: targetColId,
+              label: `${record.targetTableName}.${record.targetColumn}`,
+              type: 'column',
+              layer: record.targetLayer || undefined,
+              schema: record.targetSchemaName || undefined,
+              application: record.applicationName || undefined,
+              metadata: {
+                datatype: record.targetDatatype,
+                tableName: record.targetTableName,
+              }
+            });
+          }
         }
 
-        // Add column-level edge only if both nodes exist
-        if (sourceColId && targetColId && nodeSet.has(sourceColId) && nodeSet.has(targetColId)) {
+        // Add column-level edge
+        if (record.sourceColumn && record.targetColumn) {
+          const sourceColId = getNodeId(record.sourceSchemaName, record.sourceTableName, record.sourceColumn);
+          const targetColId = getNodeId(record.targetSchemaName, record.targetTableName, record.targetColumn);
           const colEdgeId = `${sourceColId}->${targetColId}`;
-          if (!edges.find(e => e.id === colEdgeId)) {
+          
+          if (sourceColId && targetColId && !edges.find(e => e.id === colEdgeId)) {
             edges.push({
               id: colEdgeId,
               source: sourceColId,
