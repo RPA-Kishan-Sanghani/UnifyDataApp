@@ -642,12 +642,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/pipelines", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
-      const { search, executionLayer, sourceSystem, status } = req.query;
+      const { search, executionLayer, applicationName, status } = req.query;
 
       const filters = {
         search: search as string,
         executionLayer: executionLayer as string,
-        sourceSystem: sourceSystem as string,
+        applicationName: applicationName as string,
         status: status as string,
       };
 
@@ -655,7 +655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Track pipeline view with filters if applied
       try {
-        const hasFilters = search || executionLayer || sourceSystem || status;
+        const hasFilters = search || executionLayer || applicationName || status;
         if (hasFilters) {
           await trackFilterActivity(req, filters);
         }

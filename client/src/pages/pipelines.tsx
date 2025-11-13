@@ -23,7 +23,7 @@ export function Pipelines() {
   const [filters, setFilters] = useState<PipelineFilters>({
     search: '',
     executionLayer: '',
-    sourceSystem: '',
+    applicationName: '',
     status: ''
   });
   const [openPipelines, setOpenPipelines] = useState<Set<number>>(new Set());
@@ -40,7 +40,7 @@ export function Pipelines() {
       const params = new URLSearchParams();
       if (filters.search) params.append('search', filters.search);
       if (filters.executionLayer) params.append('executionLayer', filters.executionLayer);
-      if (filters.sourceSystem) params.append('sourceSystem', filters.sourceSystem);
+      if (filters.applicationName) params.append('applicationName', filters.applicationName);
       if (filters.status) params.append('status', filters.status);
 
       const token = localStorage.getItem('token');
@@ -57,7 +57,7 @@ export function Pipelines() {
         }
         throw new Error('Failed to fetch pipelines');
       }
-      return response.json() as ConfigRecord[];
+      return await response.json() as ConfigRecord[];
     }
   });
 

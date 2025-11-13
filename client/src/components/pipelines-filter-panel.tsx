@@ -1,15 +1,17 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Filter, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ApplicationConfig } from "@shared/schema";
 
 export interface PipelineFilters {
   search: string;
   executionLayer: string;
-  sourceSystem: string;
+  applicationName: string;
   status: string;
 }
 
@@ -26,11 +28,28 @@ export default function PipelinesFilterPanel({
 }: PipelinesFilterPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Fetch application configs for dropdown
+  const { data: applicationConfigs = [] } = useQuery<ApplicationConfig[]>({
+    queryKey: ['/api/application-configs', { status: 'Active' }],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch('/api/application-configs?status=Active', { headers });
+      if (!response.ok) {
+        return [] as ApplicationConfig[];
+      }
+      return await response.json() as ApplicationConfig[];
+    }
+  });
+
   const handleReset = () => {
     const resetFilters: PipelineFilters = {
       search: '',
       executionLayer: '',
-      sourceSystem: '',
+      applicationName: '',
       status: ''
     };
     onFiltersChange(resetFilters);
@@ -122,27 +141,23 @@ export default function PipelinesFilterPanel({
               </Select>
             </div>
 
-            {/* Source System */}
+            {/* Application Name */}
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Source System</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Application Name</label>
               <Select 
-                value={filters.sourceSystem || "all"} 
-                onValueChange={(value) => onFiltersChange({ ...filters, sourceSystem: value === 'all' ? '' : value })}
+                value={filters.applicationName || "all"} 
+                onValueChange={(value) => onFiltersChange({ ...filters, applicationName: value === 'all' ? '' : value })}
               >
-                <SelectTrigger data-testid="select-source-system">
-                  <SelectValue placeholder="All Systems" />
+                <SelectTrigger data-testid="select-application-name">
+                  <SelectValue placeholder="All Applications" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Systems</SelectItem>
-                  <SelectItem value="salesforce">Salesforce</SelectItem>
-                  <SelectItem value="mysql">MySQL</SelectItem>
-                  <SelectItem value="postgresql">PostgreSQL</SelectItem>
-                  <SelectItem value="oracle">Oracle</SelectItem>
-                  <SelectItem value="snowflake">Snowflake</SelectItem>
-                  <SelectItem value="excel">Excel</SelectItem>
-                  <SelectItem value="parquet">Parquet</SelectItem>
-                  <SelectItem value="csv">CSV</SelectItem>
-                  <SelectItem value="json">JSON</SelectItem>
+                  <SelectItem value="all">All Applications</SelectItem>
+                  {applicationConfigs.map((app) => (
+                    <SelectItem key={app.applicationId} value={app.applicationName || ''}>
+                      {app.applicationName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

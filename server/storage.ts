@@ -134,7 +134,7 @@ export interface IStorage {
   getDatabaseColumnMetadata(userId: string, connectionId: number, schemaName: string, tableName: string): Promise<any[]>;
 
   // Pipeline configuration methods
-  getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; sourceSystem?: string; status?: string }): Promise<ConfigRecord[]>;
+  getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; applicationName?: string; status?: string }): Promise<ConfigRecord[]>;
   getPipeline(userId: string, id: number): Promise<ConfigRecord | undefined>;
   getMaxConfigKey(userId: string): Promise<number>;
   createPipeline(userId: string, pipeline: InsertConfigRecord): Promise<ConfigRecord>;
@@ -1888,7 +1888,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Pipeline configuration methods
-  async getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; sourceSystem?: string; status?: string }): Promise<ConfigRecord[]> {
+  async getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; applicationName?: string; status?: string }): Promise<ConfigRecord[]> {
     const userPoolResult = await getUserSpecificPool(userId);
     
     // Return empty array if no user config
@@ -1910,30 +1910,29 @@ export class DatabaseStorage implements IStorage {
         conditions.push(ilike(configTable.executionLayer, filters.executionLayer));
       }
 
-      if (filters?.sourceSystem && filters.sourceSystem !== 'all') {
-        conditions.push(ilike(configTable.sourceSystem, filters.sourceSystem));
+      if (filters?.applicationName && filters.applicationName !== 'all') {
+        conditions.push(ilike(applicationConfigTable.applicationName, `%${filters.applicationName}%`));
       }
 
       if (filters?.status && filters.status !== 'all') {
         conditions.push(eq(configTable.activeFlag, filters.status));
       }
 
-      // Execute query with Drizzle ORM (automatically converts snake_case to camelCase)
-      let result;
-      if (conditions.length > 0) {
-        result = await userDb
-          .select()
-          .from(configTable)
-          .where(and(...conditions))
-          .orderBy(desc(configTable.createdAt));
-      } else {
-        result = await userDb
-          .select()
-          .from(configTable)
-          .orderBy(desc(configTable.createdAt));
-      }
-      
-      return result;
+      // Execute query with LEFT JOIN to application_config_table
+      const query = userDb
+        .select({ config: configTable })
+        .from(configTable)
+        .leftJoin(
+          applicationConfigTable,
+          eq(configTable.sourceApplicationId, applicationConfigTable.applicationId)
+        )
+        .orderBy(desc(configTable.createdAt));
+
+      const rows = conditions.length > 0
+        ? await query.where(and(...conditions))
+        : await query;
+
+      return rows.map((row) => row.config);
     } catch (error) {
       console.error('Error fetching pipelines:', error);
       throw new Error(`Failed to fetch pipelines: ${error instanceof Error ? error.message : 'Unknown error'}`);
