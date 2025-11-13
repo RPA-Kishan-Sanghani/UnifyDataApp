@@ -2225,7 +2225,7 @@ export class DatabaseStorage implements IStorage {
         
         // Show which config_keys have target_application_id
         const configKeysWithTarget = await userPool.query(`
-          SELECT config_key, target_application_id, code_name
+          SELECT config_key, target_application_id
           FROM config_table
           WHERE target_application_id IS NOT NULL
           ORDER BY config_key
