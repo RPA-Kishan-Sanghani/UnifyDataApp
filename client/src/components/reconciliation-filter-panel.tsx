@@ -50,23 +50,31 @@ export default function ReconciliationFilterPanel({
       isCollapsed ? "w-12" : "w-64"
     )}>
       <Card className="h-fit">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center justify-between text-sm">
+        <div className="p-4 pb-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
+              <div
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="text-xs px-2 py-1 h-7 mr-1"
+                className="cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded mr-1"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsCollapsed(!isCollapsed);
+                  }
+                }}
               >
                 {isCollapsed ? (
                   <ChevronDown className="h-3 w-3 -rotate-90" />
                 ) : (
                   <ChevronUp className="h-3 w-3 rotate-90" />
                 )}
-              </Button>
+              </div>
               <Filter className="h-4 w-4 mr-1" />
-              {!isCollapsed && "Filters"}
+              <span className="text-sm font-semibold">
+                {!isCollapsed && "Filters"}
+              </span>
             </div>
             <div className="flex items-center space-x-1">
               {!isCollapsed && (
@@ -95,8 +103,8 @@ export default function ReconciliationFilterPanel({
                 </>
               )}
             </div>
-          </CardTitle>
-        </CardHeader>
+          </div>
+        </div>
         {!isCollapsed && (
           <CardContent className="space-y-3">
             {/* Search */}

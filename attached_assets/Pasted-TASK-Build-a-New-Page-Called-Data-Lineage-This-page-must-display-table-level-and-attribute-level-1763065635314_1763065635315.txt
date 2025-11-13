@@ -1,0 +1,226 @@
+TASK: Build a New Page Called “Data Lineage”
+
+This page must display table-level and attribute-level lineage with full forward & backward trace.
+
+🎛️ Filters Required
+
+All filters should dynamically refresh the lineage results and the lineage diagram.
+
+1. Source Application Name
+
+Join logic (updated):
+
+Use config_key from data_lineage
+
+Join to config_table to retrieve source_application_id
+
+Join to application_config on application_id
+
+Display application name in filter dropdown
+
+2. Target Application Name
+
+Join logic (updated):
+
+Use config_key from data_lineage
+
+Join to config_table to retrieve target_application_id
+
+Join to application_config on application_id
+
+Display application name in filter dropdown
+
+3. Source Schema Name
+4. Target Schema Name
+5. Source Layer
+6. Target Layer
+7. Source Table Name
+8. Target Table Name
+9. Global Search Box
+
+Search by:
+
+Table name
+
+Attribute/column name
+(Source or Target)
+
+📊 Lineage Diagram Requirements
+Layout
+
+Source → Target (left → right)
+
+Display layers in order: Raw → Bronze → Silver → Gold → Mart
+
+Show directional arrows clearly
+
+Support multi-hop lineage across layers
+
+Node Types
+
+Tables
+
+Columns/attributes
+
+Derived columns
+
+Renamed columns
+
+New columns
+
+Each node must show tooltips for:
+
+Data type
+
+Transformation logic (if applicable)
+
+Lineage type badge
+
+Edge Features
+
+Show mapping type
+
+Show transformation logic preview
+
+Show filter condition preview
+
+🔍 LINEAGE TRAVERSAL LOGIC (Node.js In-Memory Graph)
+
+All lineage rows are fetched once and placed into an in-memory graph for fast traversal.
+
+When a user selects a table or column:
+1. Backward (Upstream) Trace
+
+Find all records where selected table/column appears as target_*.
+Continue recursively until no more upstream nodes exist.
+
+2. Forward (Downstream) Trace
+
+Find all records where selected table/column appears as source_*.
+Continue recursively until no further targets exist.
+
+3. Derived Column Handling
+
+For lineage_type = derived column:
+
+Support multiple-source → single-target
+
+Support single-source → multiple-derived
+
+Expand all branches in the lineage graph
+
+4. Rename Column Handling
+
+Treat renamed columns as equivalent while traversing.
+
+5. New Column Handling
+
+No upstream lineage
+
+Still support downstream lineage
+
+⚙️ Node.js Optimized Enhancements
+1. Build In-Memory Lineage Graph
+
+Use indexes such as:
+
+sourceIndex: { "<schema>.<table>.<column>": [...] }
+targetIndex: { "<schema>.<table>.<column>": [...] }
+tableIndex:  { "<schema>.<table>": [...] }
+
+
+This ensures extremely fast lineage traversal.
+
+2. Graph Caching
+
+Cache the lineage graph to avoid reprocessing on each load.
+
+3. Layer Clustering
+
+Group all nodes visually by:
+
+Layer (Raw, Bronze, Silver, Gold, Mart)
+
+Application
+
+4. Multi-Path Handling
+
+If multiple lineage branches exist:
+
+Show all
+
+Provide ± expand/collapse
+
+5. Incomplete Lineage Handling
+
+If lineage breaks:
+
+Display "Unknown Source" or "Unknown Target" nodes
+
+Prevent diagram breaks
+
+6. Drill-Down Panel
+
+Click a node → show detailed metadata:
+
+Source/target columns
+
+Data types
+
+Transformation logic
+
+Effective/expiry dates
+
+Lineage type
+
+7. View Modes
+
+Provide a toggle:
+
+Table-level lineage
+
+Column-level lineage
+
+Combined view
+
+8. Export Tools
+
+Allow export of:
+
+Diagram (PNG/SVG)
+
+Lineage data (CSV/Excel)
+
+9. Error-Tolerant UI
+
+Show structured messages for:
+
+No lineage found
+
+Invalid filter
+
+Missing application-config join
+
+Missing config_key mapping
+
+🧩 Final Expected Output
+
+The “Data Lineage” page must:
+
+Load all lineage rows once into memory
+
+Build an efficient lineage graph
+
+Support backward and forward traversal
+
+Visualize lineage across multiple layers
+
+Handle derived/rename/new column logic
+
+Include all specified filters
+
+Render a clean, interactive diagram
+
+Provide drilldown details for experts
+
+Operate fast and handle missing/incomplete lineage gracefully
