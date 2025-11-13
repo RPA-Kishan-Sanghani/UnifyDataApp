@@ -2222,6 +2222,27 @@ export class DatabaseStorage implements IStorage {
           WHERE ct.target_application_id IS NOT NULL
         `);
         console.log('🔄 Matching records between config and application:', matchCheck.rows[0]?.count);
+        
+        // Show which config_keys have target_application_id
+        const configKeysWithTarget = await userPool.query(`
+          SELECT config_key, target_application_id, code_name
+          FROM config_table
+          WHERE target_application_id IS NOT NULL
+          ORDER BY config_key
+        `);
+        console.log('📌 Config keys with target_application_id:', configKeysWithTarget.rows);
+        
+        // Check if these config_keys are in data_dictionary_table
+        const ddConfigKeys = await userPool.query(`
+          SELECT DISTINCT config_key
+          FROM data_dictionary_table
+          WHERE config_key IN (
+            SELECT config_key 
+            FROM config_table 
+            WHERE target_application_id IS NOT NULL
+          )
+        `);
+        console.log('🔗 Data dict entries for these config_keys:', ddConfigKeys.rows);
       }
       
       // Get distinct target applications from data dictionary entries
