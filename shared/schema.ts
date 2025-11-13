@@ -525,3 +525,34 @@ export const updateSavedChartSchema = insertSavedChartSchema.partial();
 export type SavedChart = typeof savedChartsTable.$inferSelect;
 export type InsertSavedChart = z.infer<typeof insertSavedChartSchema>;
 export type UpdateSavedChart = z.infer<typeof updateSavedChartSchema>;
+
+// Data Lineage Detail Table - Stores table and column-level lineage tracking
+export const dataLineageDetailTable = pgTable("data_lineage_detail", {
+  lineageId: varchar("lineage_id", { length: 100 }).primaryKey(),
+  lineageType: varchar("lineage_type", { length: 50 }).notNull(),
+  applicationName: varchar("application_name", { length: 100 }),
+  configKey: varchar("config_key", { length: 100 }),
+  dataElementId: varchar("data_element_id", { length: 100 }),
+  sourceLayer: varchar("source_layer", { length: 50 }),
+  sourceSystem: varchar("source_system", { length: 100 }),
+  sourceSchemaName: varchar("source_schema_name", { length: 128 }),
+  sourceTableName: varchar("source_table_name", { length: 128 }),
+  sourceColumn: varchar("source_column", { length: 128 }),
+  targetLayer: varchar("target_layer", { length: 50 }),
+  targetSystem: varchar("target_system", { length: 100 }),
+  targetSchemaName: varchar("target_schema_name", { length: 128 }),
+  targetTableName: varchar("target_table_name", { length: 128 }),
+  targetColumn: varchar("target_column", { length: 128 }),
+  transformationLogic: text("transformation_logic"),
+  filterCondition: text("filter_condition"),
+  updateAt: timestamp("update_at").defaultNow(),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdTs: timestamp("created_ts").defaultNow(),
+  effectiveDate: timestamp("effective_date"),
+  expiryDate: timestamp("expiry_date"),
+  activeFlag: char("active_flag", { length: 1 }).default("Y"),
+  sourceDatatype: varchar("source_datatype", { length: 100 }),
+  targetDatatype: varchar("target_datatype", { length: 100 }),
+});
+
+export type DataLineageDetail = typeof dataLineageDetailTable.$inferSelect;
