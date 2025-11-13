@@ -121,9 +121,15 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
       const url = isEditing ? `/api/connections/${initialData?.connectionId}` : '/api/connections';
       const method = isEditing ? 'PUT' : 'POST';
       
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
       });
       
@@ -166,9 +172,15 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
   // Test connection mutation
   const testConnectionMutation = useMutation({
     mutationFn: async (data: Partial<ConnectionFormData>) => {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch('/api/connections/test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error('Failed to test connection');
