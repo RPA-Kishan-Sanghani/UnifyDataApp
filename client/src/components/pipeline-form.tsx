@@ -247,7 +247,13 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
     queryKey: ['/api/connections'],
     queryFn: async () => {
       const response = await fetch(`/api/connections`, { headers: getAuthHeaders() });
-      return await response.json() as Array<{ connectionId: number; connectionName: string; connectionType: string; status: string }>;
+      return await response.json() as Array<{ 
+        connectionId: number; 
+        connectionName: string; 
+        connectionType: string; 
+        status: string;
+        applicationId?: number | null;
+      }>;
     }
   });
 
