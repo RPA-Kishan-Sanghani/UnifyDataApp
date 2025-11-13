@@ -2152,45 +2152,21 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getDataDictionaryTargetApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>> {
+  async getDataDictionaryTargetApplications(userId: string): Promise<Array<{ applicationName: string }>> {
     const userPoolResult = await getUserSpecificPool(userId);
     if (!userPoolResult) return [];
     const { pool: userPool } = userPoolResult;
 
     try {
-      // Check if required tables exist
-      const tableCheckQuery = `
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config'
-        ) as has_app_config,
-        EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'config_table'
-        ) as has_config,
-        EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_name = 'data_dictionary_table'
-        ) as has_dict;
-      `;
-      const tableCheckResult = await userPool.query(tableCheckQuery);
-      const { has_app_config, has_config, has_dict } = tableCheckResult.rows[0];
-
-      if (!has_app_config || !has_config || !has_dict) {
-        return [];
-      }
-
-      // Get distinct target applications from data dictionary entries
-      // Join: data_dictionary_table -> config_table -> application_config
+      // Get distinct target systems from data dictionary entries via config_table
       const query = `
         SELECT DISTINCT 
-          ac.application_id as "applicationId",
-          ac.application_name as "applicationName"
+          ct.target_system as "applicationName"
         FROM data_dictionary_table dd
         INNER JOIN config_table ct ON dd.config_key = ct.config_key
-        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
-        WHERE ct.target_application_id IS NOT NULL
-        ORDER BY ac.application_name
+        WHERE ct.target_system IS NOT NULL 
+          AND ct.target_system != ''
+        ORDER BY ct.target_system
       `;
       
       const result = await userPool.query(query);
