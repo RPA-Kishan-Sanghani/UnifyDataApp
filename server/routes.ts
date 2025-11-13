@@ -676,6 +676,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get source applications used in pipelines
+  app.get("/api/pipelines/source-applications", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const applications = await storage.getSourceApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching source applications:', error);
+      res.status(500).json({ error: 'Failed to fetch source applications' });
+    }
+  });
+
+  // Get target applications used in pipelines
+  app.get("/api/pipelines/target-applications", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const applications = await storage.getTargetApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching target applications:', error);
+      res.status(500).json({ error: 'Failed to fetch target applications' });
+    }
+  });
+
   // Get single pipeline
   app.get("/api/pipelines/:id", authMiddleware, async (req: AuthRequest, res) => {
     try {
@@ -817,30 +841,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting pipeline:', error);
       res.status(500).json({ error: 'Failed to delete pipeline' });
-    }
-  });
-
-  // Get source applications used in pipelines
-  app.get("/api/pipelines/source-applications", authMiddleware, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.userId;
-      const applications = await storage.getSourceApplications(userId);
-      res.json(applications);
-    } catch (error) {
-      console.error('Error fetching source applications:', error);
-      res.status(500).json({ error: 'Failed to fetch source applications' });
-    }
-  });
-
-  // Get target applications used in pipelines
-  app.get("/api/pipelines/target-applications", authMiddleware, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.userId;
-      const applications = await storage.getTargetApplications(userId);
-      res.json(applications);
-    } catch (error) {
-      console.error('Error fetching target applications:', error);
-      res.status(500).json({ error: 'Failed to fetch target applications' });
     }
   });
 

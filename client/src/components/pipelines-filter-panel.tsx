@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Filter, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ApplicationConfig } from "@shared/schema";
 
 export interface PipelineFilters {
   search: string;
@@ -29,20 +28,37 @@ export default function PipelinesFilterPanel({
 }: PipelinesFilterPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Fetch application configs for dropdown
-  const { data: applicationConfigs = [] } = useQuery<ApplicationConfig[]>({
-    queryKey: ['/api/application-configs', { status: 'Active' }],
+  // Fetch source applications from pipelines
+  const { data: sourceApplications = [] } = useQuery<Array<{ applicationId: number; applicationName: string }>>({
+    queryKey: ['/api/pipelines/source-applications'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const response = await fetch('/api/application-configs?status=Active', { headers });
+      const response = await fetch('/api/pipelines/source-applications', { headers });
       if (!response.ok) {
-        return [] as ApplicationConfig[];
+        return [];
       }
-      return await response.json() as ApplicationConfig[];
+      return await response.json();
+    }
+  });
+
+  // Fetch target applications from pipelines
+  const { data: targetApplications = [] } = useQuery<Array<{ applicationId: number; applicationName: string }>>({
+    queryKey: ['/api/pipelines/target-applications'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch('/api/pipelines/target-applications', { headers });
+      if (!response.ok) {
+        return [];
+      }
+      return await response.json();
     }
   });
 
@@ -155,7 +171,7 @@ export default function PipelinesFilterPanel({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Applications</SelectItem>
-                  {applicationConfigs.map((app) => (
+                  {sourceApplications.map((app) => (
                     <SelectItem key={app.applicationId} value={app.applicationName || ''}>
                       {app.applicationName}
                     </SelectItem>
@@ -176,7 +192,7 @@ export default function PipelinesFilterPanel({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Applications</SelectItem>
-                  {applicationConfigs.map((app) => (
+                  {targetApplications.map((app) => (
                     <SelectItem key={app.applicationId} value={app.applicationName || ''}>
                       {app.applicationName}
                     </SelectItem>
