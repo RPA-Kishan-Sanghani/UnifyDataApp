@@ -66,6 +66,16 @@ export function SettingsPage() {
     }
   };
 
+  const handleRemovePhoto = () => {
+    setProfileData(prev => ({
+      ...prev,
+      photoUrl: ''
+    }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleLogout = () => {
     logout();
     toast({
@@ -233,7 +243,22 @@ export function SettingsPage() {
                   </h3>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
                   {isEditingProfile && (
-                    <p className="text-xs text-muted-foreground">Click the avatar or camera icon to upload a photo</p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        Click the avatar or camera icon to upload a photo (optional)
+                      </p>
+                      {(profileData.photoUrl || user?.photoUrl) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 px-2"
+                          onClick={handleRemovePhoto}
+                          data-testid="button-remove-photo"
+                        >
+                          Remove Photo
+                        </Button>
+                      )}
+                    </div>
                   )}
                   <Button
                     variant="outline"
