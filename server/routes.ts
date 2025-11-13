@@ -2133,6 +2133,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Data Lineage routes
+  app.get("/api/lineage/filters", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const filters = await storage.getLineageFilters(userId);
+      
+      await trackActivity(req, {
+        activityType: 'lineage_filters_viewed' as any,
+        activityCategory: 'navigation' as any,
+        resourceType: 'lineage',
+        pagePath: '/api/lineage/filters',
+      });
+      
+      res.json(filters);
+    } catch (error) {
+      console.error('Error fetching lineage filters:', error);
+      res.status(500).json({ error: 'Failed to fetch lineage filters' });
+    }
+  });
+
+  app.get("/api/lineage/records", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      
+      const filters: any = {};
+      
+      if (req.query.sourceApplicationId) {
+        filters.sourceApplicationId = parseInt(req.query.sourceApplicationId as string);
+      }
+      if (req.query.targetApplicationId) {
+        filters.targetApplicationId = parseInt(req.query.targetApplicationId as string);
+      }
+      if (req.query.sourceSchema) {
+        filters.sourceSchema = req.query.sourceSchema as string;
+      }
+      if (req.query.targetSchema) {
+        filters.targetSchema = req.query.targetSchema as string;
+      }
+      if (req.query.sourceLayer) {
+        filters.sourceLayer = req.query.sourceLayer as string;
+      }
+      if (req.query.targetLayer) {
+        filters.targetLayer = req.query.targetLayer as string;
+      }
+      if (req.query.sourceTable) {
+        filters.sourceTable = req.query.sourceTable as string;
+      }
+      if (req.query.targetTable) {
+        filters.targetTable = req.query.targetTable as string;
+      }
+      if (req.query.globalSearch) {
+        filters.globalSearch = req.query.globalSearch as string;
+      }
+      
+      const records = await storage.getLineageRecords(userId, filters);
+      
+      await trackActivity(req, {
+        activityType: 'lineage_data_viewed' as any,
+        activityCategory: 'data' as any,
+        resourceType: 'lineage',
+        pagePath: '/api/lineage/records',
+        actionDetails: filters,
+      });
+      
+      res.json(records);
+    } catch (error) {
+      console.error('Error fetching lineage records:', error);
+      res.status(500).json({ error: 'Failed to fetch lineage records' });
+    }
+  });
+
+  app.post("/api/lineage/traverse", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const { nodeId, direction, filters } = req.body;
+      
+      if (!nodeId) {
+        return res.status(400).json({ error: 'nodeId is required' });
+      }
+      
+      if (!['upstream', 'downstream', 'both'].includes(direction)) {
+        return res.status(400).json({ error: 'direction must be upstream, downstream, or both' });
+      }
+      
+      // Import lineage graph utility
+      const { LineageGraphBuilder } = await import('./lineage-graph');
+      
+      // Fetch all lineage records with optional filters
+      const records = await storage.getLineageRecords(userId, filters || {});
+      
+      // Build in-memory graph
+      const graph = LineageGraphBuilder.buildGraph(records);
+      
+      // Perform traversal based on direction
+      let result;
+      if (direction === 'upstream') {
+        result = LineageGraphBuilder.traceUpstream(graph, nodeId);
+      } else if (direction === 'downstream') {
+        result = LineageGraphBuilder.traceDownstream(graph, nodeId);
+      } else {
+        result = LineageGraphBuilder.traceFullLineage(graph, nodeId);
+      }
+      
+      // Convert nodes Map to array for JSON response
+      const responseNodes = Array.from(result.nodes);
+      
+      await trackActivity(req, {
+        activityType: 'lineage_traversal' as any,
+        activityCategory: 'data' as any,
+        resourceType: 'lineage',
+        resourceId: nodeId,
+        pagePath: '/api/lineage/traverse',
+        actionDetails: { direction, filters },
+      });
+      
+      res.json({
+        nodes: responseNodes,
+        edges: result.edges,
+        paths: direction === 'both' 
+          ? { upstream: (result as any).upstreamPaths, downstream: (result as any).downstreamPaths }
+          : (result as any).paths,
+      });
+    } catch (error) {
+      console.error('Error traversing lineage:', error);
+      res.status(500).json({ error: 'Failed to traverse lineage' });
+    }
+  });
+
   // Tour completion routes
   app.get("/api/user/tour-status", authMiddleware, async (req: AuthRequest, res) => {
     try {
