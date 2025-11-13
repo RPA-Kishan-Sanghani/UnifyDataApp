@@ -11,7 +11,8 @@ import type { ApplicationConfig } from "@shared/schema";
 export interface PipelineFilters {
   search: string;
   executionLayer: string;
-  applicationName: string;
+  sourceApplicationName: string;
+  targetApplicationName: string;
   status: string;
 }
 
@@ -49,7 +50,8 @@ export default function PipelinesFilterPanel({
     const resetFilters: PipelineFilters = {
       search: '',
       executionLayer: '',
-      applicationName: '',
+      sourceApplicationName: '',
+      targetApplicationName: '',
       status: ''
     };
     onFiltersChange(resetFilters);
@@ -141,14 +143,35 @@ export default function PipelinesFilterPanel({
               </Select>
             </div>
 
-            {/* Application Name */}
+            {/* Source Application Name */}
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Application Name</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Source Application Name</label>
               <Select 
-                value={filters.applicationName || "all"} 
-                onValueChange={(value) => onFiltersChange({ ...filters, applicationName: value === 'all' ? '' : value })}
+                value={filters.sourceApplicationName || "all"} 
+                onValueChange={(value) => onFiltersChange({ ...filters, sourceApplicationName: value === 'all' ? '' : value })}
               >
-                <SelectTrigger data-testid="select-application-name">
+                <SelectTrigger data-testid="select-source-application-name">
+                  <SelectValue placeholder="All Applications" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Applications</SelectItem>
+                  {applicationConfigs.map((app) => (
+                    <SelectItem key={app.applicationId} value={app.applicationName || ''}>
+                      {app.applicationName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Target Application Name */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Target Application Name</label>
+              <Select 
+                value={filters.targetApplicationName || "all"} 
+                onValueChange={(value) => onFiltersChange({ ...filters, targetApplicationName: value === 'all' ? '' : value })}
+              >
+                <SelectTrigger data-testid="select-target-application-name">
                   <SelectValue placeholder="All Applications" />
                 </SelectTrigger>
                 <SelectContent>
