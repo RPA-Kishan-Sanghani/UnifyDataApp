@@ -188,6 +188,10 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
     },
     onSuccess: (result) => {
       setTestResult(result);
+      // Auto-update status to Active if test succeeds
+      if (result.success) {
+        form.setValue('status', 'Active');
+      }
     },
     onError: (error) => {
       console.error('Connection test error:', error);
@@ -195,6 +199,8 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
         success: false,
         message: error.message || 'Connection test failed',
       });
+      // Auto-update status to Failed if test fails
+      form.setValue('status', 'Failed');
     },
   });
 
