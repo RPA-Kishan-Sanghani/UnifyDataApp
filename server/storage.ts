@@ -2158,6 +2158,50 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
+      console.log('🔍 Debugging target applications query...');
+      
+      // Check if tables exist
+      const tableCheckQuery = `
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name IN ('data_dictionary_table', 'config_table', 'application_config')
+        ORDER BY table_name
+      `;
+      const tableCheck = await userPool.query(tableCheckQuery);
+      console.log('📊 Available tables:', tableCheck.rows.map(r => r.table_name));
+      
+      // Check data dictionary count
+      const ddCount = await userPool.query('SELECT COUNT(*) as count FROM data_dictionary_table');
+      console.log('📝 Data dictionary entries:', ddCount.rows[0]?.count);
+      
+      // Check config table count
+      const configCount = await userPool.query('SELECT COUNT(*) as count FROM config_table');
+      console.log('⚙️ Config table entries:', configCount.rows[0]?.count);
+      
+      // Check application_config table existence and count
+      if (tableCheck.rows.some(t => t.table_name === 'application_config')) {
+        const appCount = await userPool.query('SELECT COUNT(*) as count FROM application_config');
+        console.log('🎯 Application config entries:', appCount.rows[0]?.count);
+        
+        // Check target_application_id column in config_table
+        const columnCheck = await userPool.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'config_table' 
+          AND column_name = 'target_application_id'
+        `);
+        console.log('🔗 target_application_id column exists:', columnCheck.rows.length > 0);
+        
+        // Check how many config entries have target_application_id set
+        const targetAppCount = await userPool.query(`
+          SELECT COUNT(*) as count 
+          FROM config_table 
+          WHERE target_application_id IS NOT NULL
+        `);
+        console.log('✅ Config entries with target_application_id:', targetAppCount.rows[0]?.count);
+      }
+      
       // Get distinct target applications from data dictionary entries
       // Join: data_dictionary_table -> config_table -> application_config
       const query = `
@@ -2171,10 +2215,16 @@ export class DatabaseStorage implements IStorage {
         ORDER BY ac.application_name
       `;
       
+      console.log('🚀 Executing target applications query...');
       const result = await userPool.query(query);
+      console.log('📦 Query result rows:', result.rows.length);
+      if (result.rows.length > 0) {
+        console.log('🎯 Sample results:', result.rows.slice(0, 3));
+      }
+      
       return result.rows;
     } catch (error) {
-      console.error('Error fetching data dictionary target applications:', error);
+      console.error('❌ Error fetching data dictionary target applications:', error);
       return [];
     }
   }
