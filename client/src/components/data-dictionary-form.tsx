@@ -36,8 +36,7 @@ const dataDictionaryFormSchema = z.object({
   sourceSystem: z.string().min(1, "Source system is required"),
   sourceConnectionId: z.number().min(1, "Source connection is required"),
   sourceObject: z.string().min(1, "Source object is required"),
-  targetSystem: z.string().min(1, "Target system is required"),
-  targetConnectionId: z.number().min(1, "Target connection is required"),
+  configKey: z.number().min(1, "Target application is required"),
   targetSchemaName: z.string().min(1, "Target schema is required"),
   targetTableName: z.string().min(1, "Target table name is required"),
   attributeName: z.string().min(1, "Attribute name is required"),
@@ -148,6 +147,10 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
     queryKey: ['/api/connections'],
   });
 
+  const { data: targetApplications = [] } = useQuery<Array<{ configKey: number; applicationId: number; applicationName: string; executionLayer: string; targetSystem: string }>>({
+    queryKey: ['/api/data-dictionary/target-applications'],
+  });
+
   const { data: dataTypes = [] } = useQuery<string[]>({
     queryKey: ['/api/metadata/data_type'],
   });
@@ -163,8 +166,7 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
       sourceSystem: '',
       sourceConnectionId: 0,
       sourceObject: '',
-      targetSystem: '',
-      targetConnectionId: 0,
+      configKey: entry?.configKey || 0,
       targetSchemaName: '',
       targetTableName: '',
       attributeName: entry?.attributeName || '',
@@ -183,8 +185,7 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
   // Watch form values for dynamic dropdowns
   const selectedSourceSystem = form.watch('sourceSystem');
   const selectedSourceConnectionId = form.watch('sourceConnectionId');
-  const selectedTargetSystem = form.watch('targetSystem');
-  const selectedTargetConnectionId = form.watch('targetConnectionId');
+  const selectedConfigKey = form.watch('configKey');
 
   // Filter datatypes based on selected source system
   const filteredDataTypes = selectedSourceSystem && DATABASE_DATATYPES[selectedSourceSystem]
@@ -205,19 +206,6 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
     (selectedSourceSystem === 'Salesforce' && conn.connectionType === 'API')
   );
 
-  const targetConnections = allConnections.filter(conn => 
-    !selectedTargetSystem || 
-    conn.connectionType?.toLowerCase() === selectedTargetSystem.toLowerCase() ||
-    (selectedTargetSystem === 'SQL Server' && conn.connectionType === 'SQL Server') ||
-    (selectedTargetSystem === 'MySQL' && conn.connectionType === 'MySQL') ||
-    (selectedTargetSystem === 'PostgreSQL' && conn.connectionType === 'PostgreSQL') ||
-    (selectedTargetSystem === 'Oracle' && conn.connectionType === 'Oracle') ||
-    (selectedTargetSystem === 'Snowflake' && conn.connectionType === 'Snowflake') ||
-    (selectedTargetSystem === 'MongoDB' && conn.connectionType === 'MongoDB') ||
-    (selectedTargetSystem === 'BigQuery' && conn.connectionType === 'GCP') ||
-    (selectedTargetSystem === 'Salesforce' && conn.connectionType === 'API')
-  );
-
   // Fetch source schemas for selected source connection
   const { data: sourceSchemas = [] } = useQuery<string[]>({
     queryKey: ['/api/connections', selectedSourceConnectionId, 'schemas'],
@@ -233,20 +221,11 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
     enabled: !!selectedSourceConnectionId && !!selectedSourceSchema
   });
 
-  // Fetch target schemas for selected target connection
-  const { data: targetSchemas = [] } = useQuery<string[]>({
-    queryKey: ['/api/connections', selectedTargetConnectionId, 'schemas'],
-    enabled: !!selectedTargetConnectionId
-  });
+  // Get selected application details from configKey
+  const selectedApplication = targetApplications.find(app => app.configKey === selectedConfigKey);
 
   // Watch target schema for tables
   const selectedTargetSchema = form.watch('targetSchemaName');
-
-  // Fetch target tables for selected target connection and schema
-  const { data: targetTables = [] } = useQuery<string[]>({
-    queryKey: ['/api/connections', selectedTargetConnectionId, 'schemas', selectedTargetSchema, 'tables'],
-    enabled: !!selectedTargetConnectionId && !!selectedTargetSchema
-  });
 
   // Reset form when entry changes
   useEffect(() => {
@@ -256,8 +235,7 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
         sourceSystem: '',
         sourceConnectionId: 0,
         sourceObject: '',
-        targetSystem: '',
-        targetConnectionId: 0,
+        configKey: entry.configKey || 0,
         targetSchemaName: '',
         targetTableName: '',
         attributeName: entry.attributeName,
@@ -277,8 +255,7 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
         sourceSystem: '',
         sourceConnectionId: 0,
         sourceObject: '',
-        targetSystem: '',
-        targetConnectionId: 0,
+        configKey: 0,
         targetSchemaName: '',
         targetTableName: '',
         attributeName: '',
@@ -300,7 +277,6 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
     try {
       const submitData: Partial<InsertDataDictionaryRecord> = {
         ...data,
-        configKey: 1, // Default value since we removed it from form
         createdBy: 'Current User', // In real app, get from auth
         updatedBy: 'Current User',
       };
@@ -524,47 +500,23 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="targetSystem"
+                    name="configKey"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Target System *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-target-system">
-                              <SelectValue placeholder="Select target system" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {sourceSystems.map((system) => (
-                              <SelectItem key={system} value={system}>{system}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="targetConnectionId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Target Connection *</FormLabel>
+                        <FormLabel>Target Application Name *</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString() || ''}
-                          disabled={!selectedTargetSystem}
                         >
                           <FormControl>
-                            <SelectTrigger data-testid="select-target-connection">
-                              <SelectValue placeholder={selectedTargetSystem ? "Select target connection" : "Select target system first"} />
+                            <SelectTrigger data-testid="select-target-application">
+                              <SelectValue placeholder="Select target application" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {targetConnections.map((connection) => (
-                              <SelectItem key={connection.connectionId} value={connection.connectionId.toString()}>
-                                {connection.connectionName} ({connection.connectionType})
+                            {targetApplications.map((app) => (
+                              <SelectItem key={app.configKey} value={app.configKey.toString()}>
+                                {app.applicationName} ({app.executionLayer} - {app.targetSystem})
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -580,26 +532,11 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Target Schema *</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            // Reset table when schema changes
-                            form.setValue('targetTableName', '');
-                          }}
-                          value={field.value || ''}
-                          disabled={!selectedTargetConnectionId}
-                        >
-                          <FormControl>
-                            <SelectTrigger data-testid="select-target-schema">
-                              <SelectValue placeholder={selectedTargetConnectionId ? "Select target schema" : "Select connection first"} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {targetSchemas.map((schema) => (
-                              <SelectItem key={schema} value={schema}>{schema}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          {...field}
+                          placeholder="Enter target schema name"
+                          data-testid="input-target-schema"
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -611,22 +548,11 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Target Table Name *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ''}
-                          disabled={!selectedTargetConnectionId || !selectedTargetSchema}
-                        >
-                          <FormControl>
-                            <SelectTrigger data-testid="select-target-table">
-                              <SelectValue placeholder={selectedTargetConnectionId && selectedTargetSchema ? "Select target table" : "Select schema first"} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {targetTables.map((table) => (
-                              <SelectItem key={table} value={table}>{table}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          {...field}
+                          placeholder="Enter target table name"
+                          data-testid="input-target-table"
+                        />
                         <FormMessage />
                       </FormItem>
                     )}

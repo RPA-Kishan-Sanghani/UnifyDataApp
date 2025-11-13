@@ -845,6 +845,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Data Dictionary routes
+  // Get target applications for data dictionary form (config_key based)
+  app.get("/api/data-dictionary/target-applications", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const applications = await storage.getDataDictionaryTargetApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching data dictionary target applications:', error);
+      res.status(500).json({ error: 'Failed to fetch target applications' });
+    }
+  });
+
   app.get("/api/data-dictionary", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
