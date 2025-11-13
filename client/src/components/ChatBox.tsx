@@ -28,6 +28,11 @@ interface Message {
   sessionId?: string;
 }
 
+interface Application {
+  applicationId: number;
+  applicationName: string;
+}
+
 interface Config {
   connectionName: string;
   layer: string;
@@ -38,7 +43,7 @@ export default function ChatBox() {
   const { editChart, setEditChart } = useChatEdit();
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedConnection, setSelectedConnection] = useState<string>('');
+  const [selectedApplication, setSelectedApplication] = useState<string>('');
   const [selectedLayer, setSelectedLayer] = useState<string>('');
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,16 +62,24 @@ export default function ChatBox() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
+  const chatConnectionNameRef = useRef<string>('');
 
-  // Fetch configs for dropdown
+  // Fetch applications for dropdown
+  const { data: applications = [] } = useQuery<Application[]>({
+    queryKey: ['/api/chat/applications'],
+    enabled: isOpen
+  });
+
+  // Fetch configs to get layers for selected application
   const { data: configs = [] } = useQuery<Config[]>({
     queryKey: ['/api/config'],
     enabled: isOpen
   });
 
-  // Get unique layers for selected connection
-  const availableLayers = selectedConnection
-    ? Array.from(new Set(configs.filter(c => c.connectionName === selectedConnection).map(c => c.layer)))
+  // Get unique layers for selected application (filter by configs that belong to this application)
+  // For now, show all layers since we don't have direct app-to-config mapping in the UI
+  const availableLayers = selectedApplication
+    ? Array.from(new Set(configs.map(c => c.layer)))
     : [];
 
   // Fetch all chat sessions (not filtered - show entire history)
@@ -80,17 +93,20 @@ export default function ChatBox() {
     staleTime: 1000,
   });
 
-  // Create new chat session
+  // Create new chat session (backend resolves connectionName from applicationName)
   const createSessionMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest('POST', '/api/chat/sessions', {
-        connectionName: selectedConnection,
+        connectionName: '', // Backend will resolve from applicationName
         layer: selectedLayer,
+        applicationName: selectedApplication,
       });
       return await response.json();
     },
     onSuccess: async (data: any) => {
       setCurrentSessionId(data.sessionId);
+      // Store the resolved connectionName for chat queries
+      chatConnectionNameRef.current = data.connectionName || '';
       // Refetch sessions to update the history list
       await refetchSessions();
     },
@@ -163,7 +179,7 @@ export default function ChatBox() {
         chartType: message.chartType || 'table',
         chartData: JSON.stringify(message.data),
         columns: JSON.stringify(message.columns),
-        connectionName: selectedConnection,
+        connectionName: chatConnectionNameRef.current || '',
         layer: selectedLayer,
         gridX,
         gridY,
@@ -215,8 +231,9 @@ export default function ChatBox() {
           const mostRecentSession = allSessions[0];
           await loadSession(mostRecentSession.sessionId);
           
-          // Set the connection/layer from the most recent session
-          setSelectedConnection(mostRecentSession.connectionName);
+          // Restore session settings
+          chatConnectionNameRef.current = mostRecentSession.connectionName || '';
+          setSelectedApplication(mostRecentSession.applicationName || '');
           setSelectedLayer(mostRecentSession.layer);
         }
         
@@ -426,7 +443,7 @@ export default function ChatBox() {
     mutationFn: async (data: { userQuery: string; previousError?: string; attempt?: number; tableOverride?: string[]; chartContext?: any }) => {
       const response = await apiRequest('POST', '/api/chat/query', {
         userQuery: data.userQuery,
-        connectionName: selectedConnection,
+        connectionName: chatConnectionNameRef.current || '',
         layer: selectedLayer,
         conversationHistory: conversationHistory,
         previousError: data.previousError,
@@ -515,18 +532,21 @@ export default function ChatBox() {
   });
 
   const handleSendMessage = async () => {
-    if (!userInput.trim() || !selectedConnection || !selectedLayer) return;
+    if (!userInput.trim() || !selectedApplication || !selectedLayer) return;
 
     // Create session if it doesn't exist (first message)
     let sessionId = currentSessionId;
     if (!sessionId) {
       const response = await apiRequest('POST', '/api/chat/sessions', {
-        connectionName: selectedConnection,
+        connectionName: '', // Backend will resolve from applicationName
         layer: selectedLayer,
+        applicationName: selectedApplication,
       });
       const newSession = await response.json();
       sessionId = newSession.sessionId;
       setCurrentSessionId(sessionId);
+      // Store the resolved connection for chat queries
+      chatConnectionNameRef.current = newSession.connectionName;
       refetchSessions();
     }
 
@@ -880,7 +900,8 @@ export default function ChatBox() {
       }
 
       // Switch to the correct connection/layer
-      setSelectedConnection(editChart.connectionName);
+      chatConnectionNameRef.current = editChart.connectionName || '';
+      setSelectedApplication(editChart.applicationName || '');
       setSelectedLayer(editChart.layer);
 
       // Store the chart context for editing
@@ -903,7 +924,7 @@ export default function ChatBox() {
   // Clear editing mode when connection/layer changes
   useEffect(() => {
     setEditingChart(null);
-  }, [selectedConnection, selectedLayer]);
+  }, [selectedApplication, selectedLayer]);
 
   if (!isOpen) {
     return (
@@ -953,23 +974,23 @@ export default function ChatBox() {
         {/* Configuration selectors */}
         <div className="p-2 border-b bg-gray-50 dark:bg-gray-900 space-y-1.5">
           <div className="flex gap-1.5">
-            <Select value={selectedConnection} onValueChange={(value) => {
-              setSelectedConnection(value);
+            <Select value={selectedApplication} onValueChange={(value) => {
+              setSelectedApplication(value);
               setSelectedLayer('');
             }}>
-              <SelectTrigger className="h-8 text-xs" data-testid="select-connection">
-                <SelectValue placeholder="Select Connection" />
+              <SelectTrigger className="h-8 text-xs" data-testid="select-application">
+                <SelectValue placeholder="Select Target Application" />
               </SelectTrigger>
               <SelectContent>
-                {Array.from(new Set(configs.map(c => c.connectionName))).map((name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
+                {applications.map((app) => (
+                  <SelectItem key={app.applicationId} value={app.applicationName}>
+                    {app.applicationName}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Select value={selectedLayer} onValueChange={setSelectedLayer} disabled={!selectedConnection}>
+            <Select value={selectedLayer} onValueChange={setSelectedLayer} disabled={!selectedApplication}>
               <SelectTrigger className="h-8 text-xs" data-testid="select-layer">
                 <SelectValue placeholder="Layer" />
               </SelectTrigger>
@@ -983,7 +1004,7 @@ export default function ChatBox() {
             </Select>
           </div>
           
-          {selectedConnection && selectedLayer && (
+          {selectedApplication && selectedLayer && (
             <div className="flex gap-1.5">
               <Button
                 variant="outline"
@@ -1017,7 +1038,7 @@ export default function ChatBox() {
         {/* Main content area with optional history sidebar */}
         <div className="flex flex-1 overflow-hidden">
           {/* Chat History Sidebar */}
-          {showHistory && selectedConnection && selectedLayer && (
+          {showHistory && selectedApplication && selectedLayer && (
             <div className="w-80 border-r bg-gray-50 dark:bg-gray-900 flex flex-col">
               <div className="p-3 border-b">
                 <h3 className="font-semibold text-sm">Chat History</h3>
@@ -1155,13 +1176,13 @@ export default function ChatBox() {
               onChange={(e) => setUserInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder={editingChart ? "Describe your changes..." : "Ask a question..."}
-              disabled={!selectedConnection || !selectedLayer || chatMutation.isPending}
+              disabled={!selectedApplication || !selectedLayer || chatMutation.isPending}
               className="h-8 text-sm"
               data-testid="input-chat-message"
             />
             <Button
               onClick={handleSendMessage}
-              disabled={!userInput.trim() || !selectedConnection || !selectedLayer || chatMutation.isPending}
+              disabled={!userInput.trim() || !selectedApplication || !selectedLayer || chatMutation.isPending}
               className="h-8 w-8 p-0"
               data-testid="button-send-message"
             >

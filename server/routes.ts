@@ -1909,12 +1909,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Chat History routes
+  // Get applications for chat selection
+  app.get("/api/chat/applications", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const applications = await storage.getTargetApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching applications for chat:', error);
+      res.status(500).json({ error: 'Failed to fetch applications' });
+    }
+  });
+
   app.post("/api/chat/sessions", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
-      const { connectionName, layer } = req.body;
+      const { connectionName, layer, applicationName } = req.body;
 
-      const session = await storage.createChatSession(userId, connectionName, layer);
+      const session = await storage.createChatSession(userId, connectionName, layer, applicationName);
       res.status(201).json(session);
     } catch (error) {
       console.error('Error creating chat session:', error);

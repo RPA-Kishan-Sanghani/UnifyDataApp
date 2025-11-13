@@ -457,6 +457,7 @@ export const chatSessionsTable = pgTable("chat_sessions", {
   userId: varchar("user_id", { length: 100 }).notNull(),
   connectionName: varchar("connection_name", { length: 255 }).notNull(),
   layer: varchar("layer", { length: 50 }).notNull(),
+  applicationName: varchar("application_name", { length: 255 }), // New: optional for backward compatibility
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

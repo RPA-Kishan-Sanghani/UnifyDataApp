@@ -142,6 +142,7 @@ export interface IStorage {
   deletePipeline(userId: string, id: number): Promise<boolean>;
   getSourceApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>>;
   getTargetApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>>;
+  resolveConnectionFromApplication(userId: string, applicationName: string): Promise<string | null>;
 
   // Metadata methods for dropdowns
   getMetadata(userId: string, type: string): Promise<string[]>;
@@ -202,10 +203,11 @@ export interface IStorage {
 
   // Chat History methods
   ensureChatHistoryTables(userId: string): Promise<boolean>;
-  createChatSession(userId: string, connectionName: string, layer: string): Promise<{ sessionId: string }>;
+  createChatSession(userId: string, connectionName: string, layer: string, applicationName?: string): Promise<{ sessionId: string; connectionName: string; applicationName?: string }>;
   getChatSessions(userId: string, connectionName?: string, layer?: string, limit?: number): Promise<Array<{
     sessionId: string;
     connectionName: string;
+    applicationName?: string;
     layer: string;
     createdAt: Date;
     updatedAt: Date;
@@ -2152,6 +2154,43 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async resolveConnectionFromApplication(userId: string, applicationName: string): Promise<string | null> {
+    const userPoolResult = await getUserSpecificPool(userId);
+    if (!userPoolResult) return null;
+    const { pool: userPool } = userPoolResult;
+
+    try {
+      // Find connection_name for the given application by joining config_table with application_config
+      // Note: userId scoping is implicit because getUserSpecificPool already scopes to user's database
+      const query = `
+        SELECT DISTINCT ct.connection_name
+        FROM config_table ct
+        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
+        WHERE ac.application_name = $1
+        LIMIT 1
+      `;
+      
+      const result = await userPool.query(query, [applicationName]);
+      if (result.rows.length > 0) {
+        return result.rows[0].connection_name;
+      }
+
+      // Fallback: if no exact match, get ANY connection from config_table
+      // This is safe because getUserSpecificPool already scopes to this user's database
+      const fallbackQuery = `
+        SELECT connection_name 
+        FROM config_table 
+        ORDER BY config_key DESC 
+        LIMIT 1
+      `;
+      const fallbackResult = await userPool.query(fallbackQuery);
+      return fallbackResult.rows[0]?.connection_name || null;
+    } catch (error) {
+      console.error('Error resolving connection from application:', error);
+      return null;
+    }
+  }
+
   async getDataDictionaryTargetApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>> {
     const userPoolResult = await getUserSpecificPool(userId);
     if (!userPoolResult) return [];
@@ -3060,9 +3099,23 @@ export class DatabaseStorage implements IStorage {
           user_id VARCHAR(100) NOT NULL,
           connection_name VARCHAR(255) NOT NULL,
           layer VARCHAR(50) NOT NULL,
+          application_name VARCHAR(255),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+      `);
+
+      // Add application_name column to existing chat_sessions tables if it doesn't exist
+      await client.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'chat_sessions' AND column_name = 'application_name'
+          ) THEN
+            ALTER TABLE chat_sessions ADD COLUMN application_name VARCHAR(255);
+          END IF;
+        END $$;
       `);
 
       // Create chat_messages table if it doesn't exist
@@ -3100,7 +3153,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createChatSession(userId: string, connectionName: string, layer: string): Promise<{ sessionId: string }> {
+  async createChatSession(userId: string, connectionName: string, layer: string, applicationName?: string): Promise<{ sessionId: string; connectionName: string; applicationName?: string }> {
     const userPoolResult = await getUserSpecificPool(userId);
     if (!userPoolResult) {
       throw new Error('User config database not found');
@@ -3108,18 +3161,29 @@ export class DatabaseStorage implements IStorage {
 
     await this.ensureChatHistoryTables(userId);
 
+    // Resolve connection from application if provided
+    let resolvedConnectionName = connectionName;
+    if (applicationName && !connectionName) {
+      const resolved = await this.resolveConnectionFromApplication(userId, applicationName);
+      if (resolved) {
+        resolvedConnectionName = resolved;
+      } else {
+        throw new Error(`Could not resolve connection for application: ${applicationName}`);
+      }
+    }
+
     const client = await userPoolResult.pool.connect();
     try {
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Store layer in lowercase for consistency
+      // Always store both connection_name and application_name
       await client.query(
-        `INSERT INTO chat_sessions (session_id, user_id, connection_name, layer, created_at, updated_at)
-         VALUES ($1, $2, $3, LOWER($4), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [sessionId, userId, connectionName, layer]
+        `INSERT INTO chat_sessions (session_id, user_id, connection_name, layer, application_name, created_at, updated_at)
+         VALUES ($1, $2, $3, LOWER($4), $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [sessionId, userId, resolvedConnectionName, layer, applicationName || null]
       );
 
-      return { sessionId };
+      return { sessionId, connectionName: resolvedConnectionName, applicationName };
     } finally {
       client.release();
     }
@@ -3155,6 +3219,7 @@ export class DatabaseStorage implements IStorage {
         `SELECT 
           cs.session_id,
           cs.connection_name,
+          cs.application_name,
           cs.layer,
           cs.created_at,
           cs.updated_at,
@@ -3163,7 +3228,7 @@ export class DatabaseStorage implements IStorage {
          FROM chat_sessions cs
          LEFT JOIN chat_messages cm ON cs.session_id = cm.session_id
          ${whereClause}
-         GROUP BY cs.session_id, cs.connection_name, cs.layer, cs.created_at, cs.updated_at
+         GROUP BY cs.session_id, cs.connection_name, cs.application_name, cs.layer, cs.created_at, cs.updated_at
          ORDER BY cs.updated_at DESC
          LIMIT $${params.length}`,
         params
@@ -3172,6 +3237,7 @@ export class DatabaseStorage implements IStorage {
       return result.rows.map((row: any) => ({
         sessionId: row.session_id,
         connectionName: row.connection_name,
+        applicationName: row.application_name || undefined,
         layer: row.layer,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
