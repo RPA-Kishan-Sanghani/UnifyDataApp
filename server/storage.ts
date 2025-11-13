@@ -2080,17 +2080,17 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
-      // Check if application_config_table exists
+      // Check if application_config table exists
       const tableCheckQuery = `
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config_table'
+          WHERE table_name = 'application_config'
         );
       `;
       const tableCheckResult = await userPool.query(tableCheckQuery);
-      const hasApplicationConfigTable = tableCheckResult.rows[0]?.exists || false;
+      const hasApplicationConfig = tableCheckResult.rows[0]?.exists || false;
 
-      if (!hasApplicationConfigTable) {
+      if (!hasApplicationConfig) {
         return [];
       }
 
@@ -2100,7 +2100,7 @@ export class DatabaseStorage implements IStorage {
           ac.application_id as "applicationId",
           ac.application_name as "applicationName"
         FROM config_table ct
-        INNER JOIN application_config_table ac ON ct.source_application_id = ac.application_id
+        INNER JOIN application_config ac ON ct.source_application_id = ac.application_id
         WHERE ct.source_application_id IS NOT NULL
         ORDER BY ac.application_name
       `;
@@ -2119,17 +2119,17 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
-      // Check if application_config_table exists
+      // Check if application_config table exists
       const tableCheckQuery = `
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config_table'
+          WHERE table_name = 'application_config'
         );
       `;
       const tableCheckResult = await userPool.query(tableCheckQuery);
-      const hasApplicationConfigTable = tableCheckResult.rows[0]?.exists || false;
+      const hasApplicationConfig = tableCheckResult.rows[0]?.exists || false;
 
-      if (!hasApplicationConfigTable) {
+      if (!hasApplicationConfig) {
         return [];
       }
 
@@ -2139,7 +2139,7 @@ export class DatabaseStorage implements IStorage {
           ac.application_id as "applicationId",
           ac.application_name as "applicationName"
         FROM config_table ct
-        INNER JOIN application_config_table ac ON ct.target_application_id = ac.application_id
+        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
         WHERE ct.target_application_id IS NOT NULL
         ORDER BY ac.application_name
       `;
