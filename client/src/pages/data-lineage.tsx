@@ -87,6 +87,8 @@ export default function DataLineagePage() {
       return { nodes: [], edges: [] };
     }
 
+    console.log('Lineage Records Sample:', lineageRecords.slice(0, 2));
+
     const nodeSet = new Set<string>();
     const nodes: LineageNode[] = [];
     const edges: LineageEdge[] = [];
