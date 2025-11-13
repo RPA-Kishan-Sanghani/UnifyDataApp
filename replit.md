@@ -101,6 +101,65 @@ All endpoints support date range filtering and return JSON responses with proper
 - Auto-save of all conversations with 10-session limit per connection/layer combination
 - Smart retry logic with up to 3 attempts for SQL generation errors
 
+## Data Lineage (November 13, 2025)
+A comprehensive data lineage visualization system that tracks table-level and column-level data flow across the pipeline:
+
+### Backend Implementation
+- **Storage Layer** (`server/storage.ts`):
+  - `getLineageFilters()` - Provides filter options (applications, schemas, layers, tables) via LEFT JOINs to `config_table` and `application_config`
+  - `getLineageRecords()` - Retrieves lineage data from `data_lineage_detail` table with comprehensive filtering support
+  - Graceful handling of null schemas/tables/columns in lineage records
+  
+- **Graph System** (`server/lineage-graph.ts`):
+  - In-memory graph indexing with `sourceIndex`, `targetIndex`, and `tableIndex` for efficient traversal
+  - Recursive upstream/downstream/bidirectional traversal algorithms
+  - Supports derived columns, renamed columns, and new columns (lineage_type: 'derived', 'rename', 'new')
+  - Target-only records (null sources) handled as graph roots
+
+- **Shared Utilities** (`shared/lineageUtils.ts`):
+  - `getNodeId()` - Consistent node ID generation across frontend/backend (handles null schemas)
+  - `getTableKey()` - Table-level key generation for grouping and indexing
+
+- **API Endpoints** (all with user auth + activity tracking):
+  - `GET /api/lineage/filters` - Returns filter options for UI dropdowns
+  - `GET /api/lineage/records` - Returns filtered lineage records (8 filters + global search)
+  - `POST /api/lineage/traverse` - Graph traversal from selected node in specified direction
+
+- **Validation** (`server/routes.ts`):
+  - Zod schemas for all lineage endpoints with preprocessing to handle empty strings from unselected dropdowns
+  - Numeric filter transformation (string → number) with regex validation
+  - Comprehensive error handling with descriptive messages
+
+### Frontend Implementation
+- **LineageFilterPanel** (`client/src/components/lineage-filter-panel.tsx`):
+  - 8 filter controls: Source/Target Applications, Schemas, Layers, Tables
+  - Global search across all text fields
+  - Clear filters functionality
+  - Dynamically populated from backend filter endpoint
+
+- **LineageDiagram** (`client/src/components/lineage-diagram.tsx`):
+  - ReactFlow-based interactive graph visualization
+  - Auto-layout by data layer (Raw → Bronze → Silver → Gold → Mart)
+  - Color-coded nodes by layer with hover tooltips
+  - Directional edges showing data flow
+  - Click-to-traverse functionality (upstream/downstream/both directions)
+  - Fit-to-view controls and zoom functionality
+
+- **DataLineagePage** (`client/src/pages/data-lineage.tsx`):
+  - View mode toggle: Table-level / Column-level / Combined view
+  - Integrated filter panel and diagram
+  - NodeDetailPanel showing selected node metadata
+  - CSV export functionality for lineage records
+  - Loading states and error handling
+  - User activity tracking for all interactions
+
+### Data Model
+Lineage data stored in `data_lineage_detail` table (user's external database):
+- **Source fields**: `source_application_id`, `source_schema`, `source_layer`, `source_table_name`, `source_column_name`
+- **Target fields**: `target_application_id`, `target_schema`, `target_layer`, `target_table_name`, `target_column_name`
+- **Metadata**: `lineage_type`, `transformation_logic`, `data_quality_rules`
+- Supports null source fields for new/derived columns
+
 # External Dependencies
 
 ## Core Framework Dependencies
