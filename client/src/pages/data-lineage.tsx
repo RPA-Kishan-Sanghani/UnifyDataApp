@@ -88,6 +88,7 @@ export default function DataLineagePage() {
     }
 
     console.log('Lineage Records Sample:', lineageRecords.slice(0, 2));
+    console.log('Current View Mode:', viewMode);
 
     const nodeSet = new Set<string>();
     const nodes: LineageNode[] = [];
@@ -212,6 +213,10 @@ export default function DataLineagePage() {
         }
       }
     });
+
+    console.log(`Created ${nodes.length} nodes and ${edges.length} edges`);
+    console.log('Sample nodes:', nodes.slice(0, 3));
+    console.log('Sample edges:', edges.slice(0, 3));
 
     return { nodes, edges };
   }, [lineageRecords, viewMode]);
