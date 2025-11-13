@@ -252,6 +252,55 @@ export interface IStorage {
   // Tour status methods
   getUserTourStatus(userId: string): Promise<boolean>;
   updateUserTourStatus(userId: string, completed: boolean): Promise<void>;
+
+  // Data Lineage methods
+  getLineageFilters(userId: string): Promise<{
+    sourceApplications: Array<{ applicationId: number; applicationName: string }>;
+    targetApplications: Array<{ applicationId: number; applicationName: string }>;
+    sourceSchemas: string[];
+    targetSchemas: string[];
+    sourceLayers: string[];
+    targetLayers: string[];
+    sourceTables: string[];
+    targetTables: string[];
+  }>;
+  getLineageRecords(userId: string, filters?: {
+    sourceApplicationId?: number;
+    targetApplicationId?: number;
+    sourceSchema?: string;
+    targetSchema?: string;
+    sourceLayer?: string;
+    targetLayer?: string;
+    sourceTable?: string;
+    targetTable?: string;
+    globalSearch?: string;
+  }): Promise<Array<{
+    lineageId: string;
+    lineageType: string;
+    applicationName: string | null;
+    configKey: string | null;
+    dataElementId: string | null;
+    sourceLayer: string | null;
+    sourceSystem: string | null;
+    sourceSchemaName: string | null;
+    sourceTableName: string | null;
+    sourceColumn: string | null;
+    targetLayer: string | null;
+    targetSystem: string | null;
+    targetSchemaName: string | null;
+    targetTableName: string | null;
+    targetColumn: string | null;
+    transformationLogic: string | null;
+    filterCondition: string | null;
+    updateAt: Date | null;
+    createdBy: string | null;
+    createdTs: Date | null;
+    effectiveDate: Date | null;
+    expiryDate: Date | null;
+    activeFlag: string | null;
+    sourceDatatype: string | null;
+    targetDatatype: string | null;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3841,6 +3890,309 @@ export class DatabaseStorage implements IStorage {
         .where(eq(users.id, userId));
     } catch (error) {
       console.error('Error updating tour status:', error);
+      throw error;
+    }
+  }
+
+  async getLineageFilters(userId: string): Promise<{
+    sourceApplications: Array<{ applicationId: number; applicationName: string }>;
+    targetApplications: Array<{ applicationId: number; applicationName: string }>;
+    sourceSchemas: string[];
+    targetSchemas: string[];
+    sourceLayers: string[];
+    targetLayers: string[];
+    sourceTables: string[];
+    targetTables: string[];
+  }> {
+    const poolInfo = await getUserSpecificPool(userId);
+    if (!poolInfo) {
+      return {
+        sourceApplications: [],
+        targetApplications: [],
+        sourceSchemas: [],
+        targetSchemas: [],
+        sourceLayers: [],
+        targetLayers: [],
+        sourceTables: [],
+        targetTables: [],
+      };
+    }
+
+    const { pool } = poolInfo;
+
+    try {
+      // Check if application_config table exists
+      const tableCheck = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'application_config'
+        );
+      `);
+      const hasApplicationConfig = tableCheck.rows[0].exists;
+
+      // Get source applications via config_key JOIN
+      const sourceAppsQuery = hasApplicationConfig ? `
+        SELECT DISTINCT ac.application_id as "applicationId", ac.application_name as "applicationName"
+        FROM data_lineage_detail dl
+        JOIN config_table ct ON dl.config_key::integer = ct.config_key
+        JOIN application_config ac ON ct.source_application_id = ac.application_id
+        WHERE dl.active_flag = 'Y'
+          AND ac.application_name IS NOT NULL
+        ORDER BY ac.application_name
+      ` : `SELECT NULL::integer as "applicationId", NULL::varchar as "applicationName" WHERE false`;
+
+      // Get target applications via config_key JOIN
+      const targetAppsQuery = hasApplicationConfig ? `
+        SELECT DISTINCT ac.application_id as "applicationId", ac.application_name as "applicationName"
+        FROM data_lineage_detail dl
+        JOIN config_table ct ON dl.config_key::integer = ct.config_key
+        JOIN application_config ac ON ct.target_application_id = ac.application_id
+        WHERE dl.active_flag = 'Y'
+          AND ac.application_name IS NOT NULL
+        ORDER BY ac.application_name
+      ` : `SELECT NULL::integer as "applicationId", NULL::varchar as "applicationName" WHERE false`;
+
+      const [sourceAppsResult, targetAppsResult, sourceSchemasResult, targetSchemasResult, 
+             sourceLayersResult, targetLayersResult, sourceTablesResult, targetTablesResult] = await Promise.all([
+        pool.query(sourceAppsQuery),
+        pool.query(targetAppsQuery),
+        pool.query(`
+          SELECT DISTINCT source_schema_name as value
+          FROM data_lineage_detail
+          WHERE source_schema_name IS NOT NULL AND active_flag = 'Y'
+          ORDER BY source_schema_name
+        `),
+        pool.query(`
+          SELECT DISTINCT target_schema_name as value
+          FROM data_lineage_detail
+          WHERE target_schema_name IS NOT NULL AND active_flag = 'Y'
+          ORDER BY target_schema_name
+        `),
+        pool.query(`
+          SELECT DISTINCT source_layer as value
+          FROM data_lineage_detail
+          WHERE source_layer IS NOT NULL AND active_flag = 'Y'
+          ORDER BY source_layer
+        `),
+        pool.query(`
+          SELECT DISTINCT target_layer as value
+          FROM data_lineage_detail
+          WHERE target_layer IS NOT NULL AND active_flag = 'Y'
+          ORDER BY target_layer
+        `),
+        pool.query(`
+          SELECT DISTINCT source_table_name as value
+          FROM data_lineage_detail
+          WHERE source_table_name IS NOT NULL AND active_flag = 'Y'
+          ORDER BY source_table_name
+        `),
+        pool.query(`
+          SELECT DISTINCT target_table_name as value
+          FROM data_lineage_detail
+          WHERE target_table_name IS NOT NULL AND active_flag = 'Y'
+          ORDER BY target_table_name
+        `),
+      ]);
+
+      return {
+        sourceApplications: sourceAppsResult.rows,
+        targetApplications: targetAppsResult.rows,
+        sourceSchemas: sourceSchemasResult.rows.map((r: any) => r.value),
+        targetSchemas: targetSchemasResult.rows.map((r: any) => r.value),
+        sourceLayers: sourceLayersResult.rows.map((r: any) => r.value),
+        targetLayers: targetLayersResult.rows.map((r: any) => r.value),
+        sourceTables: sourceTablesResult.rows.map((r: any) => r.value),
+        targetTables: targetTablesResult.rows.map((r: any) => r.value),
+      };
+    } catch (error) {
+      console.error('Error fetching lineage filters:', error);
+      throw error;
+    }
+  }
+
+  async getLineageRecords(userId: string, filters?: {
+    sourceApplicationId?: number;
+    targetApplicationId?: number;
+    sourceSchema?: string;
+    targetSchema?: string;
+    sourceLayer?: string;
+    targetLayer?: string;
+    sourceTable?: string;
+    targetTable?: string;
+    globalSearch?: string;
+  }): Promise<Array<{
+    lineageId: string;
+    lineageType: string;
+    applicationName: string | null;
+    configKey: string | null;
+    dataElementId: string | null;
+    sourceLayer: string | null;
+    sourceSystem: string | null;
+    sourceSchemaName: string | null;
+    sourceTableName: string | null;
+    sourceColumn: string | null;
+    targetLayer: string | null;
+    targetSystem: string | null;
+    targetSchemaName: string | null;
+    targetTableName: string | null;
+    targetColumn: string | null;
+    transformationLogic: string | null;
+    filterCondition: string | null;
+    updateAt: Date | null;
+    createdBy: string | null;
+    createdTs: Date | null;
+    effectiveDate: Date | null;
+    expiryDate: Date | null;
+    activeFlag: string | null;
+    sourceDatatype: string | null;
+    targetDatatype: string | null;
+  }>> {
+    const poolInfo = await getUserSpecificPool(userId);
+    if (!poolInfo) {
+      return [];
+    }
+
+    const { pool } = poolInfo;
+
+    try {
+      const whereClauses: string[] = ["dl.active_flag = 'Y'"];
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      // Build WHERE clauses based on filters
+      if (filters?.sourceApplicationId) {
+        whereClauses.push(`ct.source_application_id = $${paramIndex++}`);
+        params.push(filters.sourceApplicationId);
+      }
+
+      if (filters?.targetApplicationId) {
+        whereClauses.push(`ct.target_application_id = $${paramIndex++}`);
+        params.push(filters.targetApplicationId);
+      }
+
+      if (filters?.sourceSchema) {
+        whereClauses.push(`dl.source_schema_name = $${paramIndex++}`);
+        params.push(filters.sourceSchema);
+      }
+
+      if (filters?.targetSchema) {
+        whereClauses.push(`dl.target_schema_name = $${paramIndex++}`);
+        params.push(filters.targetSchema);
+      }
+
+      if (filters?.sourceLayer) {
+        whereClauses.push(`dl.source_layer = $${paramIndex++}`);
+        params.push(filters.sourceLayer);
+      }
+
+      if (filters?.targetLayer) {
+        whereClauses.push(`dl.target_layer = $${paramIndex++}`);
+        params.push(filters.targetLayer);
+      }
+
+      if (filters?.sourceTable) {
+        whereClauses.push(`dl.source_table_name = $${paramIndex++}`);
+        params.push(filters.sourceTable);
+      }
+
+      if (filters?.targetTable) {
+        whereClauses.push(`dl.target_table_name = $${paramIndex++}`);
+        params.push(filters.targetTable);
+      }
+
+      if (filters?.globalSearch) {
+        whereClauses.push(`(
+          dl.source_table_name ILIKE $${paramIndex} OR
+          dl.target_table_name ILIKE $${paramIndex} OR
+          dl.source_column ILIKE $${paramIndex} OR
+          dl.target_column ILIKE $${paramIndex}
+        )`);
+        params.push(`%${filters.globalSearch}%`);
+        paramIndex++;
+      }
+
+      // Check if application_config table exists for JOINs
+      const tableCheck = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'application_config'
+        );
+      `);
+      const hasApplicationConfig = tableCheck.rows[0].exists;
+
+      // Build query with conditional JOIN
+      let query = '';
+      if (hasApplicationConfig && (filters?.sourceApplicationId || filters?.targetApplicationId)) {
+        query = `
+          SELECT DISTINCT
+            dl.lineage_id as "lineageId",
+            dl.lineage_type as "lineageType",
+            dl.application_name as "applicationName",
+            dl.config_key as "configKey",
+            dl.data_element_id as "dataElementId",
+            dl.source_layer as "sourceLayer",
+            dl.source_system as "sourceSystem",
+            dl.source_schema_name as "sourceSchemaName",
+            dl.source_table_name as "sourceTableName",
+            dl.source_column as "sourceColumn",
+            dl.target_layer as "targetLayer",
+            dl.target_system as "targetSystem",
+            dl.target_schema_name as "targetSchemaName",
+            dl.target_table_name as "targetTableName",
+            dl.target_column as "targetColumn",
+            dl.transformation_logic as "transformationLogic",
+            dl.filter_condition as "filterCondition",
+            dl.update_at as "updateAt",
+            dl.created_by as "createdBy",
+            dl.created_ts as "createdTs",
+            dl.effective_date as "effectiveDate",
+            dl.expiry_date as "expiryDate",
+            dl.active_flag as "activeFlag",
+            dl.source_datatype as "sourceDatatype",
+            dl.target_datatype as "targetDatatype"
+          FROM data_lineage_detail dl
+          LEFT JOIN config_table ct ON dl.config_key::integer = ct.config_key
+          WHERE ${whereClauses.join(' AND ')}
+          ORDER BY dl.created_ts DESC
+        `;
+      } else {
+        query = `
+          SELECT
+            dl.lineage_id as "lineageId",
+            dl.lineage_type as "lineageType",
+            dl.application_name as "applicationName",
+            dl.config_key as "configKey",
+            dl.data_element_id as "dataElementId",
+            dl.source_layer as "sourceLayer",
+            dl.source_system as "sourceSystem",
+            dl.source_schema_name as "sourceSchemaName",
+            dl.source_table_name as "sourceTableName",
+            dl.source_column as "sourceColumn",
+            dl.target_layer as "targetLayer",
+            dl.target_system as "targetSystem",
+            dl.target_schema_name as "targetSchemaName",
+            dl.target_table_name as "targetTableName",
+            dl.target_column as "targetColumn",
+            dl.transformation_logic as "transformationLogic",
+            dl.filter_condition as "filterCondition",
+            dl.update_at as "updateAt",
+            dl.created_by as "createdBy",
+            dl.created_ts as "createdTs",
+            dl.effective_date as "effectiveDate",
+            dl.expiry_date as "expiryDate",
+            dl.active_flag as "activeFlag",
+            dl.source_datatype as "sourceDatatype",
+            dl.target_datatype as "targetDatatype"
+          FROM data_lineage_detail dl
+          WHERE ${whereClauses.join(' AND ')}
+          ORDER BY dl.created_ts DESC
+        `;
+      }
+
+      const result = await pool.query(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching lineage records:', error);
       throw error;
     }
   }
