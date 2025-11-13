@@ -21,6 +21,7 @@ interface ReconciliationFilters {
   executionLayer: string;
   reconType: string;
   status: string;
+  targetApplicationId: string;
 }
 
 export function Reconciliation() {
@@ -28,7 +29,8 @@ export function Reconciliation() {
     search: '',
     executionLayer: '',
     reconType: '',
-    status: ''
+    status: '',
+    targetApplicationId: ''
   });
   const [openConfigs, setOpenConfigs] = useState<Set<number>>(new Set());
   const [editingConfig, setEditingConfig] = useState<ReconciliationConfig | null>(null);
@@ -46,6 +48,7 @@ export function Reconciliation() {
       if (filters.executionLayer) params.append('executionLayer', filters.executionLayer.toLowerCase());
       if (filters.reconType) params.append('reconType', filters.reconType.toLowerCase());
       if (filters.status) params.append('status', filters.status);
+      if (filters.targetApplicationId) params.append('targetApplicationId', filters.targetApplicationId);
 
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = {};

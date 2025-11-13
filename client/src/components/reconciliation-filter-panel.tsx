@@ -5,12 +5,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Filter, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 export interface ReconciliationFilters {
   search: string;
   executionLayer: string;
   reconType: string;
   status: string;
+  targetApplicationId: string;
 }
 
 interface ReconciliationFilterPanelProps {
@@ -26,12 +28,18 @@ export default function ReconciliationFilterPanel({
 }: ReconciliationFilterPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Fetch target applications for dropdown
+  const { data: applications = [] } = useQuery<Array<{ applicationId: number; applicationName: string }>>({
+    queryKey: ['/api/data-dictionary/target-applications']
+  });
+
   const handleReset = () => {
     const resetFilters: ReconciliationFilters = {
       search: '',
       executionLayer: '',
       reconType: '',
-      status: ''
+      status: '',
+      targetApplicationId: ''
     };
     onFiltersChange(resetFilters);
   };
@@ -101,6 +109,27 @@ export default function ReconciliationFilterPanel({
                 onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
                 data-testid="input-search-reconciliation"
               />
+            </div>
+
+            {/* Target Application */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Target Application</label>
+              <Select 
+                value={filters.targetApplicationId || "all"} 
+                onValueChange={(value) => onFiltersChange({ ...filters, targetApplicationId: value === 'all' ? '' : value })}
+              >
+                <SelectTrigger data-testid="select-target-application">
+                  <SelectValue placeholder="All Applications" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Applications</SelectItem>
+                  {applications.map((app) => (
+                    <SelectItem key={app.applicationId} value={app.applicationId.toString()}>
+                      {app.applicationName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Execution Layer */}

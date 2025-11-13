@@ -1093,7 +1093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reconciliation-configs", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
-      const { search, executionLayer, configKey, reconType, status } = req.query;
+      const { search, executionLayer, configKey, reconType, status, targetApplicationId } = req.query;
 
       const filters = {
         search: search as string,
@@ -1101,6 +1101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         configKey: configKey ? parseInt(configKey as string) : undefined,
         reconType: reconType as string,
         status: status as string,
+        targetApplicationId: targetApplicationId ? parseInt(targetApplicationId as string) : undefined,
       };
 
       const configs = await storage.getReconciliationConfigs(userId, filters);
@@ -1408,7 +1409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/data-quality-configs", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
-      const { search, executionLayer, configKey, validationType, status } = req.query;
+      const { search, executionLayer, configKey, validationType, status, targetApplicationId } = req.query;
 
       const filters = {
         search: search as string,
@@ -1416,6 +1417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         configKey: configKey ? parseInt(configKey as string) : undefined,
         validationType: validationType as string,
         status: status as string,
+        targetApplicationId: targetApplicationId ? parseInt(targetApplicationId as string) : undefined,
       };
 
       const configs = await storage.getDataQualityConfigs(userId, filters);

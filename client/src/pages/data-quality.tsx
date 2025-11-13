@@ -21,6 +21,7 @@ interface DataQualityFilters {
   executionLayer: string;
   validationType: string;
   status: string;
+  targetApplicationId: string;
 }
 
 export function DataQuality() {
@@ -28,7 +29,8 @@ export function DataQuality() {
     search: '',
     executionLayer: '',
     validationType: '',
-    status: ''
+    status: '',
+    targetApplicationId: ''
   });
   const [openConfigs, setOpenConfigs] = useState<Set<number>>(new Set());
   const [editingConfig, setEditingConfig] = useState<DataQualityConfig | null>(null);
@@ -46,6 +48,7 @@ export function DataQuality() {
       if (filters.executionLayer) params.append('executionLayer', filters.executionLayer.toLowerCase());
       if (filters.validationType && filters.validationType !== 'all') params.append('validationType', filters.validationType.toLowerCase());
       if (filters.status) params.append('status', filters.status.toLowerCase());
+      if (filters.targetApplicationId) params.append('targetApplicationId', filters.targetApplicationId);
 
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = {};

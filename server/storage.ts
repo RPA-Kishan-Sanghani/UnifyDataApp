@@ -1,6 +1,6 @@
 import { users, auditTable, errorTable, dataConnectionTable, configTable, dataDictionaryTable, reconciliationConfigTable, dataQualityConfigTable, applicationConfigTable, userConfigDbSettings, userActivity, chatSessionsTable, chatMessagesTable, savedChartsTable, type User, type InsertUser, type AuditRecord, type ErrorRecord, type DataConnection, type InsertDataConnection, type UpdateDataConnection, type ConfigRecord, type InsertConfigRecord, type UpdateConfigRecord, type DataDictionaryRecord, type InsertDataDictionaryRecord, type UpdateDataDictionaryRecord, type ReconciliationConfig, type InsertReconciliationConfig, type UpdateReconciliationConfig, type DataQualityConfig, type InsertDataQualityConfig, type UpdateDataQualityConfig, type ApplicationConfig, type InsertApplicationConfig, type UpdateApplicationConfig, type UserConfigDbSettings, type InsertUserConfigDbSettings, type UpdateUserConfigDbSettings, type UserActivity, type InsertUserActivity, type ChatSession, type InsertChatSession, type ChatMessage, type InsertChatMessage, type SavedChart, type InsertSavedChart, type UpdateSavedChart } from "@shared/schema";
 import { db, pool, getUserSpecificPool } from "./db";
-import { eq, and, gte, lte, count, desc, asc, like, inArray, sql, ilike, or } from "drizzle-orm";
+import { eq, and, gte, lte, count, desc, asc, like, inArray, sql, ilike, or, getTableColumns } from "drizzle-orm";
 import { Pool } from 'pg';
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
@@ -2499,7 +2499,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Reconciliation config methods implementation
-  async getReconciliationConfigs(userId: string, filters?: { search?: string; executionLayer?: string; configKey?: number; reconType?: string; status?: string }): Promise<ReconciliationConfig[]> {
+  async getReconciliationConfigs(userId: string, filters?: { search?: string; executionLayer?: string; configKey?: number; reconType?: string; status?: string; targetApplicationId?: number }): Promise<ReconciliationConfig[]> {
     const userPoolResult = await getUserSpecificPool(userId);
     
     // Return empty array if no user config
@@ -2539,21 +2539,49 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Execute query with Drizzle ORM (automatically converts snake_case to camelCase)
+      // If filtering by target application, join with config_table and application_config
       let result;
-      if (conditions.length > 0) {
-        result = await userDb
-          .select()
-          .from(reconciliationConfigTable)
-          .where(and(...conditions))
-          .orderBy(desc(reconciliationConfigTable.reconKey));
+      if (filters?.targetApplicationId) {
+        // Get all columns from the base table using getTableColumns
+        const reconColumns = getTableColumns(reconciliationConfigTable);
+        
+        // Add target application filter condition (only when joining)
+        const joinConditions = [...conditions, eq(applicationConfigTable.applicationId, filters.targetApplicationId)];
+        
+        // Join with config_table and application_config for target application filtering
+        if (joinConditions.length > 0) {
+          result = await userDb
+            .select({ ...reconColumns })
+            .from(reconciliationConfigTable)
+            .leftJoin(configTable, eq(reconciliationConfigTable.configKey, configTable.configKey))
+            .leftJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .where(and(...joinConditions))
+            .orderBy(desc(reconciliationConfigTable.reconKey));
+        } else {
+          result = await userDb
+            .select({ ...reconColumns })
+            .from(reconciliationConfigTable)
+            .leftJoin(configTable, eq(reconciliationConfigTable.configKey, configTable.configKey))
+            .leftJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .orderBy(desc(reconciliationConfigTable.reconKey));
+        }
+        return result;
       } else {
-        result = await userDb
-          .select()
-          .from(reconciliationConfigTable)
-          .orderBy(desc(reconciliationConfigTable.reconKey));
+        // No target application filter, use original query
+        if (conditions.length > 0) {
+          result = await userDb
+            .select()
+            .from(reconciliationConfigTable)
+            .where(and(...conditions))
+            .orderBy(desc(reconciliationConfigTable.reconKey));
+        } else {
+          result = await userDb
+            .select()
+            .from(reconciliationConfigTable)
+            .orderBy(desc(reconciliationConfigTable.reconKey));
+        }
+        return result;
       }
-      
-      return result;
     } catch (error) {
       console.error('Error fetching reconciliation configs:', error);
       throw new Error(`Failed to fetch reconciliation configs: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -2797,7 +2825,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Data Quality Config implementations
-  async getDataQualityConfigs(userId: string, filters?: { search?: string; executionLayer?: string; configKey?: number; validationType?: string; status?: string }): Promise<DataQualityConfig[]> {
+  async getDataQualityConfigs(userId: string, filters?: { search?: string; executionLayer?: string; configKey?: number; validationType?: string; status?: string; targetApplicationId?: number }): Promise<DataQualityConfig[]> {
     const userPoolResult = await getUserSpecificPool(userId);
     
     // Return empty array if no user config
@@ -2837,21 +2865,49 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Execute query with Drizzle ORM (automatically converts snake_case to camelCase)
+      // If filtering by target application, join with config_table and application_config
       let result;
-      if (conditions.length > 0) {
-        result = await userDb
-          .select()
-          .from(dataQualityConfigTable)
-          .where(and(...conditions))
-          .orderBy(desc(dataQualityConfigTable.dataQualityKey));
+      if (filters?.targetApplicationId) {
+        // Get all columns from the base table using getTableColumns
+        const dqColumns = getTableColumns(dataQualityConfigTable);
+        
+        // Add target application filter condition (only when joining)
+        const joinConditions = [...conditions, eq(applicationConfigTable.applicationId, filters.targetApplicationId)];
+        
+        // Join with config_table and application_config for target application filtering
+        if (joinConditions.length > 0) {
+          result = await userDb
+            .select({ ...dqColumns })
+            .from(dataQualityConfigTable)
+            .leftJoin(configTable, eq(dataQualityConfigTable.configKey, configTable.configKey))
+            .leftJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .where(and(...joinConditions))
+            .orderBy(desc(dataQualityConfigTable.dataQualityKey));
+        } else {
+          result = await userDb
+            .select({ ...dqColumns })
+            .from(dataQualityConfigTable)
+            .leftJoin(configTable, eq(dataQualityConfigTable.configKey, configTable.configKey))
+            .leftJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .orderBy(desc(dataQualityConfigTable.dataQualityKey));
+        }
+        return result;
       } else {
-        result = await userDb
-          .select()
-          .from(dataQualityConfigTable)
-          .orderBy(desc(dataQualityConfigTable.dataQualityKey));
+        // No target application filter, use original query
+        if (conditions.length > 0) {
+          result = await userDb
+            .select()
+            .from(dataQualityConfigTable)
+            .where(and(...conditions))
+            .orderBy(desc(dataQualityConfigTable.dataQualityKey));
+        } else {
+          result = await userDb
+            .select()
+            .from(dataQualityConfigTable)
+            .orderBy(desc(dataQualityConfigTable.dataQualityKey));
+        }
+        return result;
       }
-      
-      return result;
     } catch (error) {
       console.error('Error fetching data quality configs:', error);
       throw new Error(`Failed to fetch data quality configs: ${error instanceof Error ? error.message : 'Unknown error'}`);
