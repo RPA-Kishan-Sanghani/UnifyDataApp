@@ -43,6 +43,10 @@ interface LineageDiagramProps {
 const LAYER_ORDER: Record<string, number> = {
   'Raw': 0,
   'raw': 0,
+  'NA': 0,
+  'na': 0,
+  'Source': 0,
+  'source': 0,
   'Bronze': 1,
   'bronze': 1,
   'Silver': 2,
@@ -53,12 +57,18 @@ const LAYER_ORDER: Record<string, number> = {
   'mart': 4,
   'Presentation': 5,
   'presentation': 5,
+  'Unknown': 6,
+  'unknown': 6,
 };
 
 // Layer colors
 const LAYER_COLORS: Record<string, string> = {
   'Raw': '#94a3b8',
   'raw': '#94a3b8',
+  'NA': '#94a3b8',
+  'na': '#94a3b8',
+  'Source': '#94a3b8',
+  'source': '#94a3b8',
   'Bronze': '#cd7f32',
   'bronze': '#cd7f32',
   'Silver': '#c0c0c0',
@@ -69,6 +79,8 @@ const LAYER_COLORS: Record<string, string> = {
   'mart': '#10b981',
   'Presentation': '#06b6d4',
   'presentation': '#06b6d4',
+  'Unknown': '#6b7280',
+  'unknown': '#6b7280',
 };
 
 const CustomTableNode = ({ data }: { data: any }) => (
