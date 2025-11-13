@@ -2152,6 +2152,55 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getDataDictionaryTargetApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>> {
+    const userPoolResult = await getUserSpecificPool(userId);
+    if (!userPoolResult) return [];
+    const { pool: userPool } = userPoolResult;
+
+    try {
+      // Check if required tables exist
+      const tableCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'application_config'
+        ) as has_app_config,
+        EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'config_table'
+        ) as has_config,
+        EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'data_dictionary_table'
+        ) as has_dict;
+      `;
+      const tableCheckResult = await userPool.query(tableCheckQuery);
+      const { has_app_config, has_config, has_dict } = tableCheckResult.rows[0];
+
+      if (!has_app_config || !has_config || !has_dict) {
+        return [];
+      }
+
+      // Get distinct target applications from data dictionary entries
+      // Join: data_dictionary_table -> config_table -> application_config
+      const query = `
+        SELECT DISTINCT 
+          ac.application_id as "applicationId",
+          ac.application_name as "applicationName"
+        FROM data_dictionary_table dd
+        INNER JOIN config_table ct ON dd.config_key = ct.config_key
+        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
+        WHERE ct.target_application_id IS NOT NULL
+        ORDER BY ac.application_name
+      `;
+      
+      const result = await userPool.query(query);
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching data dictionary target applications:', error);
+      return [];
+    }
+  }
+
   async getMetadata(userId: string, type: string): Promise<string[]> {
     // Static metadata for dropdowns - in production this could come from a metadata table
     const metadataMap: Record<string, string[]> = {
@@ -2178,7 +2227,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Data dictionary implementation
-  async getDataDictionaryEntries(userId: string, filters?: { search?: string; executionLayer?: string; schemaName?: string; tableName?: string; customField?: string; customValue?: string }): Promise<DataDictionaryRecord[]> {
+  async getDataDictionaryEntries(userId: string, filters?: { search?: string; executionLayer?: string; schemaName?: string; tableName?: string; targetApplicationName?: string; customField?: string; customValue?: string }): Promise<DataDictionaryRecord[]> {
     const userPoolResult = await getUserSpecificPool(userId);
     
     // Return empty array if no user config
@@ -2241,19 +2290,86 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Execute query with Drizzle ORM (automatically converts snake_case to camelCase)
+      // Execute query with Drizzle ORM
+      // If filtering by target application name, join through config_table and application_config
       let result;
-      if (conditions.length > 0) {
-        result = await userDb
-          .select()
-          .from(dataDictionaryTable)
-          .where(and(...conditions))
-          .orderBy(desc(dataDictionaryTable.insertDate));
+      
+      if (filters?.targetApplicationName && filters.targetApplicationName !== 'all') {
+        // Add join condition for target application filter
+        conditions.push(eq(applicationConfigTable.applicationName, filters.targetApplicationName));
+        
+        if (conditions.length > 0) {
+          result = await userDb
+            .select({
+              dataDictionaryKey: dataDictionaryTable.dataDictionaryKey,
+              configKey: dataDictionaryTable.configKey,
+              executionLayer: dataDictionaryTable.executionLayer,
+              schemaName: dataDictionaryTable.schemaName,
+              tableName: dataDictionaryTable.tableName,
+              attributeName: dataDictionaryTable.attributeName,
+              dataType: dataDictionaryTable.dataType,
+              length: dataDictionaryTable.length,
+              precisionValue: dataDictionaryTable.precisionValue,
+              scale: dataDictionaryTable.scale,
+              isNotNull: dataDictionaryTable.isNotNull,
+              isPrimaryKey: dataDictionaryTable.isPrimaryKey,
+              isForeignKey: dataDictionaryTable.isForeignKey,
+              foreignKeyTable: dataDictionaryTable.foreignKeyTable,
+              activeFlag: dataDictionaryTable.activeFlag,
+              columnDescription: dataDictionaryTable.columnDescription,
+              createdBy: dataDictionaryTable.createdBy,
+              updatedBy: dataDictionaryTable.updatedBy,
+              insertDate: dataDictionaryTable.insertDate,
+              updateDate: dataDictionaryTable.updateDate,
+            })
+            .from(dataDictionaryTable)
+            .innerJoin(configTable, eq(dataDictionaryTable.configKey, configTable.configKey))
+            .innerJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .where(and(...conditions))
+            .orderBy(desc(dataDictionaryTable.insertDate));
+        } else {
+          result = await userDb
+            .select({
+              dataDictionaryKey: dataDictionaryTable.dataDictionaryKey,
+              configKey: dataDictionaryTable.configKey,
+              executionLayer: dataDictionaryTable.executionLayer,
+              schemaName: dataDictionaryTable.schemaName,
+              tableName: dataDictionaryTable.tableName,
+              attributeName: dataDictionaryTable.attributeName,
+              dataType: dataDictionaryTable.dataType,
+              length: dataDictionaryTable.length,
+              precisionValue: dataDictionaryTable.precisionValue,
+              scale: dataDictionaryTable.scale,
+              isNotNull: dataDictionaryTable.isNotNull,
+              isPrimaryKey: dataDictionaryTable.isPrimaryKey,
+              isForeignKey: dataDictionaryTable.isForeignKey,
+              foreignKeyTable: dataDictionaryTable.foreignKeyTable,
+              activeFlag: dataDictionaryTable.activeFlag,
+              columnDescription: dataDictionaryTable.columnDescription,
+              createdBy: dataDictionaryTable.createdBy,
+              updatedBy: dataDictionaryTable.updatedBy,
+              insertDate: dataDictionaryTable.insertDate,
+              updateDate: dataDictionaryTable.updateDate,
+            })
+            .from(dataDictionaryTable)
+            .innerJoin(configTable, eq(dataDictionaryTable.configKey, configTable.configKey))
+            .innerJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .orderBy(desc(dataDictionaryTable.insertDate));
+        }
       } else {
-        result = await userDb
-          .select()
-          .from(dataDictionaryTable)
-          .orderBy(desc(dataDictionaryTable.insertDate));
+        // No join needed - standard query
+        if (conditions.length > 0) {
+          result = await userDb
+            .select()
+            .from(dataDictionaryTable)
+            .where(and(...conditions))
+            .orderBy(desc(dataDictionaryTable.insertDate));
+        } else {
+          result = await userDb
+            .select()
+            .from(dataDictionaryTable)
+            .orderBy(desc(dataDictionaryTable.insertDate));
+        }
       }
       
       return result;

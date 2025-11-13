@@ -848,21 +848,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/data-dictionary", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
-      const { search, executionLayer, schemaName, tableName, sourceSystem } = req.query;
+      const { search, executionLayer, schemaName, tableName, sourceSystem, targetApplicationName } = req.query;
 
       const filters = {
         search: search as string,
         executionLayer: executionLayer as string,
         schemaName: schemaName as string,
         tableName: tableName as string,
-        sourceSystem: sourceSystem as string
+        sourceSystem: sourceSystem as string,
+        targetApplicationName: targetApplicationName as string
       };
 
       const entries = await storage.getDataDictionaryEntries(userId, filters);
       
       // Track data dictionary view with filters if applied
       try {
-        const hasFilters = search || executionLayer || schemaName || tableName || sourceSystem;
+        const hasFilters = search || executionLayer || schemaName || tableName || sourceSystem || targetApplicationName;
         if (hasFilters) {
           await trackFilterActivity(req, filters);
         }
@@ -879,6 +880,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching data dictionary entries:', error);
       res.status(500).json({ error: 'Failed to fetch data dictionary entries' });
+    }
+  });
+
+  // Get target applications used in data dictionary entries
+  app.get("/api/data-dictionary/target-applications", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const applications = await storage.getDataDictionaryTargetApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching data dictionary target applications:', error);
+      res.status(500).json({ error: 'Failed to fetch target applications' });
     }
   });
 
