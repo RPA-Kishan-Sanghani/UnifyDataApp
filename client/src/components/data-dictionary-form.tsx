@@ -60,6 +60,76 @@ interface DataDictionaryFormProps {
   onCancel: () => void;
 }
 
+// Database-specific datatype mappings
+const DATABASE_DATATYPES: Record<string, string[]> = {
+  'MySQL': [
+    'INT', 'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT',
+    'DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE',
+    'BIT', 'BOOLEAN',
+    'CHAR', 'VARCHAR', 'BINARY', 'VARBINARY',
+    'TINYBLOB', 'BLOB', 'MEDIUMBLOB', 'LONGBLOB',
+    'TINYTEXT', 'TEXT', 'MEDIUMTEXT', 'LONGTEXT',
+    'ENUM', 'SET',
+    'DATE', 'DATETIME', 'TIMESTAMP', 'TIME', 'YEAR',
+    'JSON', 'GEOMETRY', 'POINT', 'LINESTRING', 'POLYGON'
+  ],
+  'PostgreSQL': [
+    'SMALLINT', 'INTEGER', 'BIGINT',
+    'DECIMAL', 'NUMERIC', 'REAL', 'DOUBLE PRECISION',
+    'SMALLSERIAL', 'SERIAL', 'BIGSERIAL',
+    'MONEY',
+    'CHAR', 'VARCHAR', 'TEXT',
+    'BYTEA',
+    'TIMESTAMP', 'TIMESTAMP WITH TIME ZONE', 'DATE', 'TIME', 'TIME WITH TIME ZONE', 'INTERVAL',
+    'BOOLEAN',
+    'POINT', 'LINE', 'LSEG', 'BOX', 'PATH', 'POLYGON', 'CIRCLE',
+    'INET', 'CIDR', 'MACADDR',
+    'UUID', 'JSON', 'JSONB', 'XML',
+    'ARRAY', 'HSTORE'
+  ],
+  'SQL Server': [
+    'TINYINT', 'SMALLINT', 'INT', 'BIGINT',
+    'DECIMAL', 'NUMERIC', 'FLOAT', 'REAL',
+    'MONEY', 'SMALLMONEY',
+    'BIT',
+    'CHAR', 'VARCHAR', 'TEXT',
+    'NCHAR', 'NVARCHAR', 'NTEXT',
+    'BINARY', 'VARBINARY', 'IMAGE',
+    'DATE', 'TIME', 'DATETIME', 'DATETIME2', 'SMALLDATETIME', 'DATETIMEOFFSET',
+    'UNIQUEIDENTIFIER',
+    'XML', 'SQL_VARIANT',
+    'GEOGRAPHY', 'GEOMETRY'
+  ],
+  'Oracle': [
+    'NUMBER', 'FLOAT', 'BINARY_FLOAT', 'BINARY_DOUBLE',
+    'CHAR', 'VARCHAR2', 'NCHAR', 'NVARCHAR2',
+    'LONG', 'RAW', 'LONG RAW',
+    'CLOB', 'NCLOB', 'BLOB', 'BFILE',
+    'DATE', 'TIMESTAMP', 'TIMESTAMP WITH TIME ZONE', 'TIMESTAMP WITH LOCAL TIME ZONE',
+    'INTERVAL YEAR TO MONTH', 'INTERVAL DAY TO SECOND',
+    'ROWID', 'UROWID',
+    'XMLType', 'JSON'
+  ],
+  'MongoDB': [
+    'String', 'Number', 'Boolean',
+    'Date', 'Timestamp',
+    'Object', 'Array',
+    'ObjectId', 'Binary', 'Decimal128',
+    'MinKey', 'MaxKey',
+    'Null', 'Undefined'
+  ],
+  'Snowflake': [
+    'NUMBER', 'DECIMAL', 'NUMERIC', 'INT', 'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT', 'BYTEINT',
+    'FLOAT', 'FLOAT4', 'FLOAT8', 'DOUBLE', 'DOUBLE PRECISION', 'REAL',
+    'VARCHAR', 'CHAR', 'CHARACTER', 'STRING', 'TEXT',
+    'BINARY', 'VARBINARY',
+    'BOOLEAN',
+    'DATE', 'DATETIME', 'TIME', 'TIMESTAMP', 'TIMESTAMP_LTZ', 'TIMESTAMP_NTZ', 'TIMESTAMP_TZ',
+    'VARIANT', 'OBJECT', 'ARRAY',
+    'GEOGRAPHY'
+  ]
+};
+
 export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionaryFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -115,6 +185,11 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
   const selectedSourceConnectionId = form.watch('sourceConnectionId');
   const selectedTargetSystem = form.watch('targetSystem');
   const selectedTargetConnectionId = form.watch('targetConnectionId');
+
+  // Filter datatypes based on selected source system
+  const filteredDataTypes = selectedSourceSystem && DATABASE_DATATYPES[selectedSourceSystem]
+    ? DATABASE_DATATYPES[selectedSourceSystem]
+    : dataTypes; // Fallback to all datatypes if no source system selected or not in mapping
 
   // Filter connections based on selected systems
   const sourceConnections = allConnections.filter(conn => 
@@ -593,14 +668,18 @@ export function DataDictionaryForm({ entry, onSuccess, onCancel }: DataDictionar
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Data Type *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value}
+                          disabled={!selectedSourceSystem}
+                        >
                           <FormControl>
                             <SelectTrigger data-testid="select-data-type">
-                              <SelectValue placeholder="Select data type" />
+                              <SelectValue placeholder={selectedSourceSystem ? "Select data type" : "Select source system first"} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {dataTypes.map((type) => (
+                            {filteredDataTypes.map((type) => (
                               <SelectItem key={type} value={type}>{type}</SelectItem>
                             ))}
                           </SelectContent>
