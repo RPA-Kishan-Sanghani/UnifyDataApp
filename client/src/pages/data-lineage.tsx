@@ -129,8 +129,8 @@ export default function DataLineagePage() {
           });
         }
 
-        // Add table-level edge
-        if (sourceTableId && targetTableId) {
+        // Add table-level edge only if both nodes exist
+        if (sourceTableId && targetTableId && nodeSet.has(sourceTableId) && nodeSet.has(targetTableId)) {
           const tableEdgeId = `${sourceTableId}->${targetTableId}`;
           if (!edges.find(e => e.id === tableEdgeId)) {
             edges.push({
@@ -182,8 +182,8 @@ export default function DataLineagePage() {
           });
         }
 
-        // Add column-level edge
-        if (sourceColId && targetColId) {
+        // Add column-level edge only if both nodes exist
+        if (sourceColId && targetColId && nodeSet.has(sourceColId) && nodeSet.has(targetColId)) {
           const colEdgeId = `${sourceColId}->${targetColId}`;
           if (!edges.find(e => e.id === colEdgeId)) {
             edges.push({
