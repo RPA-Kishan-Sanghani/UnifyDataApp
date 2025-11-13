@@ -2134,6 +2134,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Data Lineage routes
+  // Zod schemas for lineage validation
+  // Preprocess to convert empty strings to undefined for clean filtering
+  const lineageFiltersSchema = z.preprocess(
+    (data: any) => {
+      if (typeof data !== 'object' || data === null) return data;
+      const processed: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        processed[key] = value === '' ? undefined : value;
+      }
+      return processed;
+    },
+    z.object({
+      sourceApplicationId: z.string().regex(/^\d+$/).transform(Number).optional(),
+      targetApplicationId: z.string().regex(/^\d+$/).transform(Number).optional(),
+      sourceSchema: z.string().optional(),
+      targetSchema: z.string().optional(),
+      sourceLayer: z.string().optional(),
+      targetLayer: z.string().optional(),
+      sourceTable: z.string().optional(),
+      targetTable: z.string().optional(),
+      globalSearch: z.string().optional(),
+    })
+  );
+
+  const lineageTraversalSchema = z.object({
+    nodeId: z.string().min(1, 'nodeId is required'),
+    direction: z.enum(['upstream', 'downstream', 'both']),
+    filters: z.object({
+      sourceApplicationId: z.union([z.string().regex(/^\d+$/).transform(Number), z.number()]).optional(),
+      targetApplicationId: z.union([z.string().regex(/^\d+$/).transform(Number), z.number()]).optional(),
+      sourceSchema: z.string().optional(),
+      targetSchema: z.string().optional(),
+      sourceLayer: z.string().optional(),
+      targetLayer: z.string().optional(),
+      sourceTable: z.string().optional(),
+      targetTable: z.string().optional(),
+      globalSearch: z.string().optional(),
+    }).optional(),
+  });
+
   app.get("/api/lineage/filters", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
@@ -2157,36 +2197,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.userId;
       
-      const filters: any = {};
-      
-      if (req.query.sourceApplicationId) {
-        filters.sourceApplicationId = parseInt(req.query.sourceApplicationId as string);
-      }
-      if (req.query.targetApplicationId) {
-        filters.targetApplicationId = parseInt(req.query.targetApplicationId as string);
-      }
-      if (req.query.sourceSchema) {
-        filters.sourceSchema = req.query.sourceSchema as string;
-      }
-      if (req.query.targetSchema) {
-        filters.targetSchema = req.query.targetSchema as string;
-      }
-      if (req.query.sourceLayer) {
-        filters.sourceLayer = req.query.sourceLayer as string;
-      }
-      if (req.query.targetLayer) {
-        filters.targetLayer = req.query.targetLayer as string;
-      }
-      if (req.query.sourceTable) {
-        filters.sourceTable = req.query.sourceTable as string;
-      }
-      if (req.query.targetTable) {
-        filters.targetTable = req.query.targetTable as string;
-      }
-      if (req.query.globalSearch) {
-        filters.globalSearch = req.query.globalSearch as string;
+      // Validate and parse query parameters
+      const validationResult = lineageFiltersSchema.safeParse(req.query);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: 'Invalid filter parameters', 
+          details: validationResult.error.errors 
+        });
       }
       
+      const filters = validationResult.data;
       const records = await storage.getLineageRecords(userId, filters);
       
       await trackActivity(req, {
@@ -2207,15 +2227,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/lineage/traverse", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.userId;
-      const { nodeId, direction, filters } = req.body;
       
-      if (!nodeId) {
-        return res.status(400).json({ error: 'nodeId is required' });
+      // Validate request body
+      const validationResult = lineageTraversalSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: 'Invalid request payload', 
+          details: validationResult.error.errors 
+        });
       }
       
-      if (!['upstream', 'downstream', 'both'].includes(direction)) {
-        return res.status(400).json({ error: 'direction must be upstream, downstream, or both' });
-      }
+      const { nodeId, direction, filters } = validationResult.data;
       
       // Import lineage graph utility
       const { LineageGraphBuilder } = await import('./lineage-graph');

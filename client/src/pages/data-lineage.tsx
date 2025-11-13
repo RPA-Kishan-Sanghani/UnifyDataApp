@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Download, GitBranch, ArrowUpCircle, ArrowDownCircle, Network } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getNodeId } from "@shared/lineageUtils";
 
 interface DataLineageDetail {
   lineageId: number;
@@ -20,12 +21,12 @@ interface DataLineageDetail {
   sourceSystem: string | null;
   sourceSchemaName: string | null;
   sourceTableName: string | null;
-  sourceAttributeName: string | null;
+  sourceColumn: string | null;
   targetLayer: string | null;
   targetSystem: string | null;
   targetSchemaName: string | null;
   targetTableName: string | null;
-  targetAttributeName: string | null;
+  targetColumn: string | null;
   transformationLogic: string | null;
   filterCondition: string | null;
   sourceDatatype: string | null;
@@ -70,10 +71,10 @@ export default function DataLineagePage() {
     lineageRecords.forEach((record) => {
       if (viewMode === 'table' || viewMode === 'combined') {
         // Add table-level nodes
-        const sourceTableId = `${record.sourceSchemaName}.${record.sourceTableName}`;
-        const targetTableId = `${record.targetSchemaName}.${record.targetTableName}`;
+        const sourceTableId = getNodeId(record.sourceSchemaName, record.sourceTableName, null);
+        const targetTableId = getNodeId(record.targetSchemaName, record.targetTableName, null);
 
-        if (!nodeSet.has(sourceTableId) && record.sourceTableName) {
+        if (sourceTableId && !nodeSet.has(sourceTableId) && record.sourceTableName) {
           nodeSet.add(sourceTableId);
           nodes.push({
             id: sourceTableId,
@@ -89,7 +90,7 @@ export default function DataLineagePage() {
           });
         }
 
-        if (!nodeSet.has(targetTableId) && record.targetTableName) {
+        if (targetTableId && !nodeSet.has(targetTableId) && record.targetTableName) {
           nodeSet.add(targetTableId);
           nodes.push({
             id: targetTableId,
@@ -106,29 +107,31 @@ export default function DataLineagePage() {
         }
 
         // Add table-level edge
-        const tableEdgeId = `${sourceTableId}->${targetTableId}`;
-        if (!edges.find(e => e.id === tableEdgeId)) {
-          edges.push({
-            id: tableEdgeId,
-            source: sourceTableId,
-            target: targetTableId,
+        if (sourceTableId && targetTableId) {
+          const tableEdgeId = `${sourceTableId}->${targetTableId}`;
+          if (!edges.find(e => e.id === tableEdgeId)) {
+            edges.push({
+              id: tableEdgeId,
+              source: sourceTableId,
+              target: targetTableId,
             label: record.lineageType,
-            transformationLogic: record.transformationLogic || undefined,
-            filterCondition: record.filterCondition || undefined,
-          });
+              transformationLogic: record.transformationLogic || undefined,
+              filterCondition: record.filterCondition || undefined,
+            });
+          }
         }
       }
 
       if (viewMode === 'column' || viewMode === 'combined') {
         // Add column-level nodes
-        const sourceColId = `${record.sourceSchemaName}.${record.sourceTableName}.${record.sourceAttributeName}`;
-        const targetColId = `${record.targetSchemaName}.${record.targetTableName}.${record.targetAttributeName}`;
+        const sourceColId = getNodeId(record.sourceSchemaName, record.sourceTableName, record.sourceColumn);
+        const targetColId = getNodeId(record.targetSchemaName, record.targetTableName, record.targetColumn);
 
-        if (!nodeSet.has(sourceColId) && record.sourceAttributeName) {
+        if (sourceColId && !nodeSet.has(sourceColId) && record.sourceColumn) {
           nodeSet.add(sourceColId);
           nodes.push({
             id: sourceColId,
-            label: `${record.sourceTableName}.${record.sourceAttributeName}`,
+            label: `${record.sourceTableName}.${record.sourceColumn}`,
             type: 'column',
             layer: record.sourceLayer || undefined,
             schema: record.sourceSchemaName || undefined,
@@ -140,11 +143,11 @@ export default function DataLineagePage() {
           });
         }
 
-        if (!nodeSet.has(targetColId) && record.targetAttributeName) {
+        if (targetColId && !nodeSet.has(targetColId) && record.targetColumn) {
           nodeSet.add(targetColId);
           nodes.push({
             id: targetColId,
-            label: `${record.targetTableName}.${record.targetAttributeName}`,
+            label: `${record.targetTableName}.${record.targetColumn}`,
             type: 'column',
             layer: record.targetLayer || undefined,
             schema: record.targetSchemaName || undefined,
@@ -157,7 +160,7 @@ export default function DataLineagePage() {
         }
 
         // Add column-level edge
-        if (record.sourceAttributeName && record.targetAttributeName) {
+        if (sourceColId && targetColId) {
           const colEdgeId = `${sourceColId}->${targetColId}`;
           if (!edges.find(e => e.id === colEdgeId)) {
             edges.push({
@@ -194,11 +197,11 @@ export default function DataLineagePage() {
       record.sourceLayer || '',
       record.sourceSchemaName || '',
       record.sourceTableName || '',
-      record.sourceAttributeName || '',
+      record.sourceColumn || '',
       record.targetLayer || '',
       record.targetSchemaName || '',
       record.targetTableName || '',
-      record.targetAttributeName || '',
+      record.targetColumn || '',
       record.transformationLogic || '',
       record.filterCondition || '',
       record.sourceDatatype || '',
@@ -416,8 +419,8 @@ export default function DataLineagePage() {
                                   <div className="font-medium text-sm">
                                     {record.sourceSchemaName}.{record.sourceTableName}
                                   </div>
-                                  {record.sourceAttributeName && (
-                                    <div className="text-xs text-gray-600">{record.sourceAttributeName}</div>
+                                  {record.sourceColumn && (
+                                    <div className="text-xs text-gray-600">{record.sourceColumn}</div>
                                   )}
                                 </div>
                               </TableCell>
@@ -427,8 +430,8 @@ export default function DataLineagePage() {
                                   <div className="font-medium text-sm">
                                     {record.targetSchemaName}.{record.targetTableName}
                                   </div>
-                                  {record.targetAttributeName && (
-                                    <div className="text-xs text-gray-600">{record.targetAttributeName}</div>
+                                  {record.targetColumn && (
+                                    <div className="text-xs text-gray-600">{record.targetColumn}</div>
                                   )}
                                 </div>
                               </TableCell>

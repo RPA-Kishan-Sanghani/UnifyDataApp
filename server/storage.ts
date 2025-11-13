@@ -4111,83 +4111,68 @@ export class DatabaseStorage implements IStorage {
         paramIndex++;
       }
 
-      // Check if application_config table exists for JOINs
+      // Check if tables exist for proper JOINs
       const tableCheck = await pool.query(`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
           WHERE table_name = 'application_config'
-        );
+        ) as has_app_config,
+        EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'config_table'
+        ) as has_config_table;
       `);
-      const hasApplicationConfig = tableCheck.rows[0].exists;
+      const hasApplicationConfig = tableCheck.rows[0].has_app_config;
+      const hasConfigTable = tableCheck.rows[0].has_config_table;
 
-      // Build query with conditional JOIN
-      let query = '';
-      if (hasApplicationConfig && (filters?.sourceApplicationId || filters?.targetApplicationId)) {
-        query = `
-          SELECT DISTINCT
-            dl.lineage_id as "lineageId",
-            dl.lineage_type as "lineageType",
-            dl.application_name as "applicationName",
-            dl.config_key as "configKey",
-            dl.data_element_id as "dataElementId",
-            dl.source_layer as "sourceLayer",
-            dl.source_system as "sourceSystem",
-            dl.source_schema_name as "sourceSchemaName",
-            dl.source_table_name as "sourceTableName",
-            dl.source_column as "sourceColumn",
-            dl.target_layer as "targetLayer",
-            dl.target_system as "targetSystem",
-            dl.target_schema_name as "targetSchemaName",
-            dl.target_table_name as "targetTableName",
-            dl.target_column as "targetColumn",
-            dl.transformation_logic as "transformationLogic",
-            dl.filter_condition as "filterCondition",
-            dl.update_at as "updateAt",
-            dl.created_by as "createdBy",
-            dl.created_ts as "createdTs",
-            dl.effective_date as "effectiveDate",
-            dl.expiry_date as "expiryDate",
-            dl.active_flag as "activeFlag",
-            dl.source_datatype as "sourceDatatype",
-            dl.target_datatype as "targetDatatype"
-          FROM data_lineage_detail dl
-          LEFT JOIN config_table ct ON dl.config_key::integer = ct.config_key
-          WHERE ${whereClauses.join(' AND ')}
-          ORDER BY dl.created_ts DESC
+      // Build query with proper JOINs to config_table and application_config
+      let query = `
+        SELECT
+          dl.lineage_id as "lineageId",
+          dl.lineage_type as "lineageType",
+          COALESCE(ac_src.application_name, ac_tgt.application_name, dl.application_name) as "applicationName",
+          dl.config_key as "configKey",
+          dl.data_element_id as "dataElementId",
+          dl.source_layer as "sourceLayer",
+          dl.source_system as "sourceSystem",
+          dl.source_schema_name as "sourceSchemaName",
+          dl.source_table_name as "sourceTableName",
+          dl.source_column as "sourceColumn",
+          dl.target_layer as "targetLayer",
+          dl.target_system as "targetSystem",
+          dl.target_schema_name as "targetSchemaName",
+          dl.target_table_name as "targetTableName",
+          dl.target_column as "targetColumn",
+          dl.transformation_logic as "transformationLogic",
+          dl.filter_condition as "filterCondition",
+          dl.update_at as "updateAt",
+          dl.created_by as "createdBy",
+          dl.created_ts as "createdTs",
+          dl.effective_date as "effectiveDate",
+          dl.expiry_date as "expiryDate",
+          dl.active_flag as "activeFlag",
+          dl.source_datatype as "sourceDatatype",
+          dl.target_datatype as "targetDatatype"
+        FROM data_lineage_detail dl
+      `;
+
+      // Add JOINs if tables exist - always LEFT JOIN to preserve all records
+      if (hasConfigTable && hasApplicationConfig) {
+        query += `
+          LEFT JOIN config_table ct ON dl.config_key IS NOT NULL AND dl.config_key::text ~ '^[0-9]+$' AND dl.config_key::integer = ct.config_key
+          LEFT JOIN application_config ac_src ON ct.source_application_id = ac_src.application_id
+          LEFT JOIN application_config ac_tgt ON ct.target_application_id = ac_tgt.application_id
         `;
-      } else {
-        query = `
-          SELECT
-            dl.lineage_id as "lineageId",
-            dl.lineage_type as "lineageType",
-            dl.application_name as "applicationName",
-            dl.config_key as "configKey",
-            dl.data_element_id as "dataElementId",
-            dl.source_layer as "sourceLayer",
-            dl.source_system as "sourceSystem",
-            dl.source_schema_name as "sourceSchemaName",
-            dl.source_table_name as "sourceTableName",
-            dl.source_column as "sourceColumn",
-            dl.target_layer as "targetLayer",
-            dl.target_system as "targetSystem",
-            dl.target_schema_name as "targetSchemaName",
-            dl.target_table_name as "targetTableName",
-            dl.target_column as "targetColumn",
-            dl.transformation_logic as "transformationLogic",
-            dl.filter_condition as "filterCondition",
-            dl.update_at as "updateAt",
-            dl.created_by as "createdBy",
-            dl.created_ts as "createdTs",
-            dl.effective_date as "effectiveDate",
-            dl.expiry_date as "expiryDate",
-            dl.active_flag as "activeFlag",
-            dl.source_datatype as "sourceDatatype",
-            dl.target_datatype as "targetDatatype"
-          FROM data_lineage_detail dl
-          WHERE ${whereClauses.join(' AND ')}
-          ORDER BY dl.created_ts DESC
+      } else if (hasConfigTable) {
+        query += `
+          LEFT JOIN config_table ct ON dl.config_key IS NOT NULL AND dl.config_key::text ~ '^[0-9]+$' AND dl.config_key::integer = ct.config_key
         `;
       }
+
+      query += `
+        WHERE ${whereClauses.join(' AND ')}
+        ORDER BY dl.created_ts DESC
+      `;
 
       const result = await pool.query(query, params);
       return result.rows;

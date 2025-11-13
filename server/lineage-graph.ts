@@ -1,4 +1,5 @@
 // Lineage Graph Utility - In-memory graph indexing and recursive traversal
+import { getNodeId, getTableKey } from '../shared/lineageUtils';
 
 export interface LineageRecord {
   lineageId: string;
@@ -71,12 +72,12 @@ export class LineageGraphBuilder {
 
     for (const record of records) {
       // Build nodes
-      const sourceNodeId = this.getNodeId(
+      const sourceNodeId = getNodeId(
         record.sourceSchemaName,
         record.sourceTableName,
         record.sourceColumn
       );
-      const targetNodeId = this.getNodeId(
+      const targetNodeId = getNodeId(
         record.targetSchemaName,
         record.targetTableName,
         record.targetColumn
@@ -142,7 +143,7 @@ export class LineageGraphBuilder {
       }
 
       // tableIndex: index by table name for both source and target
-      const sourceTableKey = this.getTableKey(record.sourceSchemaName, record.sourceTableName);
+      const sourceTableKey = getTableKey(record.sourceSchemaName, record.sourceTableName);
       if (sourceTableKey) {
         if (!tableIndex.has(sourceTableKey)) {
           tableIndex.set(sourceTableKey, []);
@@ -150,7 +151,7 @@ export class LineageGraphBuilder {
         tableIndex.get(sourceTableKey)!.push(record);
       }
 
-      const targetTableKey = this.getTableKey(record.targetSchemaName, record.targetTableName);
+      const targetTableKey = getTableKey(record.targetSchemaName, record.targetTableName);
       if (targetTableKey) {
         if (!tableIndex.has(targetTableKey)) {
           tableIndex.set(targetTableKey, []);
@@ -160,24 +161,6 @@ export class LineageGraphBuilder {
     }
 
     return { nodes, edges, sourceIndex, targetIndex, tableIndex };
-  }
-
-  /**
-   * Generate unique node ID
-   */
-  private static getNodeId(schema: string | null, table: string | null, column: string | null): string | null {
-    if (!table) return null;
-    const schemaPrefix = schema ? `${schema}.` : '';
-    const columnSuffix = column ? `.${column}` : '';
-    return `${schemaPrefix}${table}${columnSuffix}`;
-  }
-
-  /**
-   * Generate table key for indexing
-   */
-  private static getTableKey(schema: string | null, table: string | null): string | null {
-    if (!table) return null;
-    return schema ? `${schema}.${table}` : table;
   }
 
   /**
@@ -213,7 +196,7 @@ export class LineageGraphBuilder {
     const upstreamRecords = graph.sourceIndex.get(targetNodeId) || [];
 
     for (const record of upstreamRecords) {
-      const sourceNodeId = this.getNodeId(
+      const sourceNodeId = getNodeId(
         record.sourceSchemaName,
         record.sourceTableName,
         record.sourceColumn
@@ -278,7 +261,7 @@ export class LineageGraphBuilder {
     const downstreamRecords = graph.targetIndex.get(sourceNodeId) || [];
 
     for (const record of downstreamRecords) {
-      const targetNodeId = this.getNodeId(
+      const targetNodeId = getNodeId(
         record.targetSchemaName,
         record.targetTableName,
         record.targetColumn
@@ -356,7 +339,7 @@ export class LineageGraphBuilder {
     nodes: LineageNode[];
     edges: LineageEdge[];
   } {
-    const tableKey = this.getTableKey(schema, table);
+    const tableKey = getTableKey(schema, table);
     if (!tableKey) {
       return { nodes: [], edges: [] };
     }
@@ -366,12 +349,12 @@ export class LineageGraphBuilder {
     const edgesMap = new Map<string, LineageEdge>();
 
     for (const record of records) {
-      const sourceNodeId = this.getNodeId(
+      const sourceNodeId = getNodeId(
         record.sourceSchemaName,
         record.sourceTableName,
         record.sourceColumn
       );
-      const targetNodeId = this.getNodeId(
+      const targetNodeId = getNodeId(
         record.targetSchemaName,
         record.targetTableName,
         record.targetColumn
