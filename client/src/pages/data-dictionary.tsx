@@ -725,11 +725,11 @@ export function DataDictionary() {
                                           <TableCell>
                                             {isEditing ? (
                                               <Select
-                                                value={editValues.dataType || ''}
+                                                value={editValues.dataType ?? entry.dataType ?? ''}
                                                 onValueChange={(value) => updateEditingValue(entry.dataDictionaryKey, 'dataType', value)}
                                               >
                                                 <SelectTrigger className="w-32" data-testid={`select-data-type-${entry.dataDictionaryKey}`}>
-                                                  <SelectValue placeholder="Select type" />
+                                                  <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                   {Array.from(new Set(Object.values(DATABASE_DATATYPES).flat())).sort().map((type) => (
