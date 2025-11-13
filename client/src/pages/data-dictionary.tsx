@@ -729,12 +729,19 @@ export function DataDictionary() {
                                                 onValueChange={(value) => updateEditingValue(entry.dataDictionaryKey, 'dataType', value)}
                                               >
                                                 <SelectTrigger className="w-32" data-testid={`select-data-type-${entry.dataDictionaryKey}`}>
-                                                  <SelectValue />
+                                                  <SelectValue placeholder={editValues.dataType || entry.dataType || 'Select type'} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                  {Array.from(new Set(Object.values(DATABASE_DATATYPES).flat())).sort().map((type) => (
-                                                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                                                  ))}
+                                                  {(() => {
+                                                    const allTypes = Array.from(new Set(Object.values(DATABASE_DATATYPES).flat()));
+                                                    const currentType = editValues.dataType || entry.dataType;
+                                                    if (currentType && !allTypes.includes(currentType)) {
+                                                      allTypes.push(currentType);
+                                                    }
+                                                    return allTypes.sort().map((type) => (
+                                                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                                                    ));
+                                                  })()}
                                                 </SelectContent>
                                               </Select>
                                             ) : (
