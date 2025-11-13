@@ -144,7 +144,7 @@ export function DataDictionary() {
   const [layerFilter, setLayerFilter] = useState("all");
   const [schemaFilter, setSchemaFilter] = useState("all");
   const [tableFilter, setTableFilter] = useState("all");
-  const [targetSystemFilter, setTargetSystemFilter] = useState("all");
+  const [targetApplicationFilter, setTargetApplicationFilter] = useState("all");
   const [expandedRows, setExpandedRows] = useState<ExpandedRowState>({});
   const [editingStates, setEditingStates] = useState<EditingState>({});
   const [editingValues, setEditingValues] = useState<{[key: number]: Partial<DataDictionaryRecord>}>({});
@@ -152,9 +152,9 @@ export function DataDictionary() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch all data dictionary entries
-  const { data: allEntries = [], isLoading, error } = useQuery({
-    queryKey: ['/api/data-dictionary'],
+  // Fetch target applications for filter dropdown
+  const { data: targetApplications = [] } = useQuery<Array<{ applicationId: number; applicationName: string }>>({
+    queryKey: ['/api/data-dictionary/target-applications'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = {};
@@ -162,7 +162,35 @@ export function DataDictionary() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('/api/data-dictionary', { headers });
+      const response = await fetch('/api/data-dictionary/target-applications', { headers });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 404) {
+          return [];
+        }
+        throw new Error('Failed to fetch target applications');
+      }
+      return response.json();
+    }
+  });
+
+  // Fetch all data dictionary entries with filters
+  const { data: allEntries = [], isLoading, error } = useQuery({
+    queryKey: ['/api/data-dictionary', targetApplicationFilter],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (targetApplicationFilter && targetApplicationFilter !== 'all') {
+        params.append('targetApplicationName', targetApplicationFilter);
+      }
+
+      const url = `/api/data-dictionary${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, { headers });
       if (!response.ok) {
         // If unauthorized or no config, return empty array instead of error
         if (response.status === 401 || response.status === 404) {
@@ -233,10 +261,8 @@ export function DataDictionary() {
     const matchesLayer = layerFilter === 'all' || table.executionLayer.toLowerCase() === layerFilter.toLowerCase();
     const matchesSchema = schemaFilter === 'all' || table.schemaName.toLowerCase() === schemaFilter.toLowerCase();
     const matchesTable = tableFilter === 'all' || table.tableName.toLowerCase() === tableFilter.toLowerCase();
-    const matchesTargetSystem = targetSystemFilter === 'all' ||
-      table.entries.some(entry => entry.createdBy?.toLowerCase() === targetSystemFilter.toLowerCase());
 
-    return matchesSearch && matchesLayer && matchesSchema && matchesTable && matchesTargetSystem;
+    return matchesSearch && matchesLayer && matchesSchema && matchesTable;
   });
 
   // Update entry mutation for inline editing
@@ -260,7 +286,7 @@ export function DataDictionary() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'], exact: false });
       toast({
         title: 'Success',
         description: 'Data dictionary entry updated successfully',
@@ -294,7 +320,7 @@ export function DataDictionary() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'], exact: false });
       toast({
         title: 'Success',
         description: 'Data dictionary entry deleted successfully',
@@ -393,7 +419,7 @@ export function DataDictionary() {
       }
 
       // Invalidate cache to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'], exact: false });
 
       // Show single toast notification
       if (failCount === 0) {
@@ -452,7 +478,7 @@ export function DataDictionary() {
           <div className="flex items-center space-x-3">
             <Button
               variant="outline"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'] })}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/data-dictionary'], exact: false })}
               data-testid="button-refresh-entries"
               size="sm"
             >
@@ -514,14 +540,14 @@ export function DataDictionary() {
             </SelectContent>
           </Select>
 
-          <Select value={targetSystemFilter} onValueChange={setTargetSystemFilter}>
-            <SelectTrigger className="w-48" data-testid="select-target-system-filter">
-              <SelectValue placeholder="Filter by target system" />
+          <Select value={targetApplicationFilter} onValueChange={setTargetApplicationFilter}>
+            <SelectTrigger className="w-48" data-testid="select-target-application-filter">
+              <SelectValue placeholder="Filter by target application" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Target Systems</SelectItem>
-              {Array.from(new Set(allEntries.map((entry: DataDictionaryRecord) => entry.createdBy))).filter((s): s is string => Boolean(s)).map((system) => (
-                <SelectItem key={system} value={system}>{system}</SelectItem>
+              <SelectItem value="all">All Target Applications</SelectItem>
+              {targetApplications.map((app) => (
+                <SelectItem key={app.applicationId} value={app.applicationName}>{app.applicationName}</SelectItem>
               ))}
             </SelectContent>
           </Select>
