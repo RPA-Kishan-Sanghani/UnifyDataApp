@@ -140,6 +140,8 @@ export interface IStorage {
   createPipeline(userId: string, pipeline: InsertConfigRecord): Promise<ConfigRecord>;
   updatePipeline(userId: string, id: number, updates: UpdateConfigRecord): Promise<ConfigRecord | undefined>;
   deletePipeline(userId: string, id: number): Promise<boolean>;
+  getSourceApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>>;
+  getTargetApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>>;
 
   // Metadata methods for dropdowns
   getMetadata(userId: string, type: string): Promise<string[]>;
@@ -2070,6 +2072,84 @@ export class DatabaseStorage implements IStorage {
 
     const result = await userDb.delete(configTable).where(eq(configTable.configKey, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  async getSourceApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>> {
+    const userPoolResult = await getUserSpecificPool(userId);
+    if (!userPoolResult) return [];
+    const { pool: userPool } = userPoolResult;
+
+    try {
+      // Check if application_config_table exists
+      const tableCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'application_config_table'
+        );
+      `;
+      const tableCheckResult = await userPool.query(tableCheckQuery);
+      const hasApplicationConfigTable = tableCheckResult.rows[0]?.exists || false;
+
+      if (!hasApplicationConfigTable) {
+        return [];
+      }
+
+      // Get distinct source applications from config_table
+      const query = `
+        SELECT DISTINCT 
+          ac.application_id as "applicationId",
+          ac.application_name as "applicationName"
+        FROM config_table ct
+        INNER JOIN application_config_table ac ON ct.source_application_id = ac.application_id
+        WHERE ct.source_application_id IS NOT NULL
+        ORDER BY ac.application_name
+      `;
+      
+      const result = await userPool.query(query);
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching source applications:', error);
+      return [];
+    }
+  }
+
+  async getTargetApplications(userId: string): Promise<Array<{ applicationId: number; applicationName: string }>> {
+    const userPoolResult = await getUserSpecificPool(userId);
+    if (!userPoolResult) return [];
+    const { pool: userPool } = userPoolResult;
+
+    try {
+      // Check if application_config_table exists
+      const tableCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'application_config_table'
+        );
+      `;
+      const tableCheckResult = await userPool.query(tableCheckQuery);
+      const hasApplicationConfigTable = tableCheckResult.rows[0]?.exists || false;
+
+      if (!hasApplicationConfigTable) {
+        return [];
+      }
+
+      // Get distinct target applications from config_table
+      const query = `
+        SELECT DISTINCT 
+          ac.application_id as "applicationId",
+          ac.application_name as "applicationName"
+        FROM config_table ct
+        INNER JOIN application_config_table ac ON ct.target_application_id = ac.application_id
+        WHERE ct.target_application_id IS NOT NULL
+        ORDER BY ac.application_name
+      `;
+      
+      const result = await userPool.query(query);
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching target applications:', error);
+      return [];
+    }
   }
 
   async getMetadata(userId: string, type: string): Promise<string[]> {
