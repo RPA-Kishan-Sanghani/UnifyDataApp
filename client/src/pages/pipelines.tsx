@@ -23,7 +23,8 @@ export function Pipelines() {
   const [filters, setFilters] = useState<PipelineFilters>({
     search: '',
     executionLayer: '',
-    applicationName: '',
+    sourceApplicationName: '',
+    targetApplicationName: '',
     status: ''
   });
   const [openPipelines, setOpenPipelines] = useState<Set<number>>(new Set());
@@ -40,7 +41,8 @@ export function Pipelines() {
       const params = new URLSearchParams();
       if (filters.search) params.append('search', filters.search);
       if (filters.executionLayer) params.append('executionLayer', filters.executionLayer);
-      if (filters.applicationName) params.append('applicationName', filters.applicationName);
+      if (filters.sourceApplicationName) params.append('sourceApplicationName', filters.sourceApplicationName);
+      if (filters.targetApplicationName) params.append('targetApplicationName', filters.targetApplicationName);
       if (filters.status) params.append('status', filters.status);
 
       const token = localStorage.getItem('token');

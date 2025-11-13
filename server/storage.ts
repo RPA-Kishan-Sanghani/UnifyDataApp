@@ -134,7 +134,7 @@ export interface IStorage {
   getDatabaseColumnMetadata(userId: string, connectionId: number, schemaName: string, tableName: string): Promise<any[]>;
 
   // Pipeline configuration methods
-  getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; applicationName?: string; status?: string }): Promise<ConfigRecord[]>;
+  getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; sourceApplicationName?: string; targetApplicationName?: string; status?: string }): Promise<ConfigRecord[]>;
   getPipeline(userId: string, id: number): Promise<ConfigRecord | undefined>;
   getMaxConfigKey(userId: string): Promise<number>;
   createPipeline(userId: string, pipeline: InsertConfigRecord): Promise<ConfigRecord>;
@@ -1888,7 +1888,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Pipeline configuration methods
-  async getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; applicationName?: string; status?: string }): Promise<ConfigRecord[]> {
+  async getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; sourceApplicationName?: string; targetApplicationName?: string; status?: string }): Promise<ConfigRecord[]> {
     const userPoolResult = await getUserSpecificPool(userId);
     
     // Return empty array if no user config
@@ -1899,6 +1899,10 @@ export class DatabaseStorage implements IStorage {
     const { db: userDb } = userPoolResult;
     
     try {
+      // Create aliases for source and target application config tables
+      const sourceAppTable = sql`source_app_config`;
+      const targetAppTable = sql`target_app_config`;
+
       // Build WHERE conditions using Drizzle ORM
       const conditions = [];
 
@@ -1910,21 +1914,29 @@ export class DatabaseStorage implements IStorage {
         conditions.push(ilike(configTable.executionLayer, filters.executionLayer));
       }
 
-      if (filters?.applicationName && filters.applicationName !== 'all') {
-        conditions.push(ilike(applicationConfigTable.applicationName, `%${filters.applicationName}%`));
+      if (filters?.sourceApplicationName && filters.sourceApplicationName !== 'all') {
+        conditions.push(sql`source_app_config.application_name ILIKE ${'%' + filters.sourceApplicationName + '%'}`);
+      }
+
+      if (filters?.targetApplicationName && filters.targetApplicationName !== 'all') {
+        conditions.push(sql`target_app_config.application_name ILIKE ${'%' + filters.targetApplicationName + '%'}`);
       }
 
       if (filters?.status && filters.status !== 'all') {
         conditions.push(eq(configTable.activeFlag, filters.status));
       }
 
-      // Execute query with LEFT JOIN to application_config_table
+      // Execute query with LEFT JOINs to application_config_table for both source and target
       const query = userDb
         .select({ config: configTable })
         .from(configTable)
         .leftJoin(
-          applicationConfigTable,
-          eq(configTable.sourceApplicationId, applicationConfigTable.applicationId)
+          sql`application_config_table AS source_app_config`,
+          sql`${configTable.sourceApplicationId} = source_app_config.application_id`
+        )
+        .leftJoin(
+          sql`application_config_table AS target_app_config`,
+          sql`${configTable.targetApplicationId} = target_app_config.application_id`
         )
         .orderBy(desc(configTable.createdAt));
 
