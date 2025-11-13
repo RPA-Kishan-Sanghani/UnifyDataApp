@@ -2158,112 +2158,20 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
-      console.log('🔍 Debugging target applications query...');
-      
-      // Check if tables exist
-      const tableCheckQuery = `
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name IN ('data_dictionary_table', 'config_table', 'application_config')
-        ORDER BY table_name
-      `;
-      const tableCheck = await userPool.query(tableCheckQuery);
-      console.log('📊 Available tables:', tableCheck.rows.map(r => r.table_name));
-      
-      // Check data dictionary count
-      const ddCount = await userPool.query('SELECT COUNT(*) as count FROM data_dictionary_table');
-      console.log('📝 Data dictionary entries:', ddCount.rows[0]?.count);
-      
-      // Check config table count
-      const configCount = await userPool.query('SELECT COUNT(*) as count FROM config_table');
-      console.log('⚙️ Config table entries:', configCount.rows[0]?.count);
-      
-      // Check application_config table existence and count
-      if (tableCheck.rows.some(t => t.table_name === 'application_config')) {
-        const appCount = await userPool.query('SELECT COUNT(*) as count FROM application_config');
-        console.log('🎯 Application config entries:', appCount.rows[0]?.count);
-        
-        // Show actual application_id values
-        const appIds = await userPool.query('SELECT application_id, application_name FROM application_config ORDER BY application_id');
-        console.log('📋 Application IDs:', appIds.rows);
-        
-        // Check target_application_id column in config_table
-        const columnCheck = await userPool.query(`
-          SELECT column_name 
-          FROM information_schema.columns 
-          WHERE table_name = 'config_table' 
-          AND column_name = 'target_application_id'
-        `);
-        console.log('🔗 target_application_id column exists:', columnCheck.rows.length > 0);
-        
-        // Check how many config entries have target_application_id set
-        const targetAppCount = await userPool.query(`
-          SELECT COUNT(*) as count 
-          FROM config_table 
-          WHERE target_application_id IS NOT NULL
-        `);
-        console.log('✅ Config entries with target_application_id:', targetAppCount.rows[0]?.count);
-        
-        // Show actual target_application_id values
-        const targetAppIds = await userPool.query(`
-          SELECT DISTINCT target_application_id 
-          FROM config_table 
-          WHERE target_application_id IS NOT NULL
-          ORDER BY target_application_id
-        `);
-        console.log('🔑 Target application IDs in config_table:', targetAppIds.rows.map(r => r.target_application_id));
-        
-        // Check if there's a match
-        const matchCheck = await userPool.query(`
-          SELECT COUNT(*) as count
-          FROM config_table ct
-          INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
-          WHERE ct.target_application_id IS NOT NULL
-        `);
-        console.log('🔄 Matching records between config and application:', matchCheck.rows[0]?.count);
-        
-        // Show which config_keys have target_application_id
-        const configKeysWithTarget = await userPool.query(`
-          SELECT config_key, target_application_id
-          FROM config_table
-          WHERE target_application_id IS NOT NULL
-          ORDER BY config_key
-        `);
-        console.log('📌 Config keys with target_application_id:', configKeysWithTarget.rows);
-        
-        // Check if these config_keys are in data_dictionary_table
-        const ddConfigKeys = await userPool.query(`
-          SELECT DISTINCT config_key
-          FROM data_dictionary_table
-          WHERE config_key IN (
-            SELECT config_key 
-            FROM config_table 
-            WHERE target_application_id IS NOT NULL
-          )
-        `);
-        console.log('🔗 Data dict entries for these config_keys:', ddConfigKeys.rows);
-      }
-      
-      // Get distinct target applications from data dictionary entries
-      // Join: data_dictionary_table -> config_table -> application_config
+      // Use COALESCE to check target_application_id first, then fall back to source_application_id
+      // This works with existing data and provides a migration path
       const query = `
         SELECT DISTINCT 
           ac.application_id as "applicationId",
           ac.application_name as "applicationName"
         FROM data_dictionary_table dd
         INNER JOIN config_table ct ON dd.config_key = ct.config_key
-        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
-        WHERE ct.target_application_id IS NOT NULL
+        INNER JOIN application_config ac ON COALESCE(ct.target_application_id, ct.source_application_id) = ac.application_id
+        WHERE COALESCE(ct.target_application_id, ct.source_application_id) IS NOT NULL
         ORDER BY ac.application_name
       `;
       
-      console.log('🚀 Executing target applications query...');
       const result = await userPool.query(query);
-      console.log('📦 Query result rows:', result.rows.length);
-      if (result.rows.length > 0) {
-        console.log('🎯 Sample results:', result.rows.slice(0, 3));
-      }
       
       return result.rows;
     } catch (error) {
@@ -2369,6 +2277,9 @@ export class DatabaseStorage implements IStorage {
         // Add join condition for target application filter
         conditions.push(eq(applicationConfigTable.applicationName, filters.targetApplicationName));
         
+        // Use COALESCE to check target_application_id first, then fall back to source_application_id
+        const appIdJoinCondition = sql`COALESCE(${configTable.targetApplicationId}, ${configTable.sourceApplicationId}) = ${applicationConfigTable.applicationId}`;
+        
         if (conditions.length > 0) {
           result = await userDb
             .select({
@@ -2394,7 +2305,7 @@ export class DatabaseStorage implements IStorage {
             })
             .from(dataDictionaryTable)
             .innerJoin(configTable, eq(dataDictionaryTable.configKey, configTable.configKey))
-            .innerJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .innerJoin(applicationConfigTable, appIdJoinCondition)
             .where(and(...conditions))
             .orderBy(desc(dataDictionaryTable.insertDate));
         } else {
@@ -2422,7 +2333,7 @@ export class DatabaseStorage implements IStorage {
             })
             .from(dataDictionaryTable)
             .innerJoin(configTable, eq(dataDictionaryTable.configKey, configTable.configKey))
-            .innerJoin(applicationConfigTable, eq(configTable.targetApplicationId, applicationConfigTable.applicationId))
+            .innerJoin(applicationConfigTable, appIdJoinCondition)
             .orderBy(desc(dataDictionaryTable.insertDate));
         }
       } else {
