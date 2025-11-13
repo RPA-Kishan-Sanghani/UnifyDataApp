@@ -732,10 +732,7 @@ export function DataDictionary() {
                                                   <SelectValue placeholder="Select type" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                  {(entry.sourceSystem && DATABASE_DATATYPES[entry.sourceSystem] 
-                                                    ? DATABASE_DATATYPES[entry.sourceSystem]
-                                                    : Object.values(DATABASE_DATATYPES).flat()
-                                                  ).map((type) => (
+                                                  {Array.from(new Set(Object.values(DATABASE_DATATYPES).flat())).sort().map((type) => (
                                                     <SelectItem key={type} value={type}>{type}</SelectItem>
                                                   ))}
                                                 </SelectContent>
