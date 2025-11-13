@@ -1896,55 +1896,78 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
 
-    const { db: userDb } = userPoolResult;
+    const { pool: userPool } = userPoolResult;
     
     try {
-      // Create aliases for source and target application config tables
-      const sourceAppTable = sql`source_app_config`;
-      const targetAppTable = sql`target_app_config`;
-
-      // Build WHERE conditions using Drizzle ORM
-      const conditions = [];
+      // Build WHERE conditions
+      const whereClauses: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
 
       if (filters?.search) {
-        conditions.push(ilike(configTable.sourceTableName, `%${filters.search}%`));
+        whereClauses.push(`ct.source_table_name ILIKE $${paramIndex++}`);
+        params.push(`%${filters.search}%`);
       }
 
       if (filters?.executionLayer && filters.executionLayer !== 'all') {
-        conditions.push(ilike(configTable.executionLayer, filters.executionLayer));
-      }
-
-      if (filters?.sourceApplicationName && filters.sourceApplicationName !== 'all') {
-        conditions.push(sql`source_app_config.application_name ILIKE ${'%' + filters.sourceApplicationName + '%'}`);
-      }
-
-      if (filters?.targetApplicationName && filters.targetApplicationName !== 'all') {
-        conditions.push(sql`target_app_config.application_name ILIKE ${'%' + filters.targetApplicationName + '%'}`);
+        whereClauses.push(`ct.execution_layer ILIKE $${paramIndex++}`);
+        params.push(filters.executionLayer);
       }
 
       if (filters?.status && filters.status !== 'all') {
-        conditions.push(eq(configTable.activeFlag, filters.status));
+        whereClauses.push(`ct.active_flag = $${paramIndex++}`);
+        params.push(filters.status);
       }
 
-      // Execute query with LEFT JOINs to application_config_table for both source and target
-      const query = userDb
-        .select({ config: configTable })
-        .from(configTable)
-        .leftJoin(
-          sql`application_config_table AS source_app_config`,
-          sql`${configTable.sourceApplicationId} = source_app_config.application_id`
-        )
-        .leftJoin(
-          sql`application_config_table AS target_app_config`,
-          sql`${configTable.targetApplicationId} = target_app_config.application_id`
-        )
-        .orderBy(desc(configTable.createdAt));
+      // Check if application_config_table exists
+      const tableCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'application_config_table'
+        );
+      `;
+      const tableCheckResult = await userPool.query(tableCheckQuery);
+      const hasApplicationConfigTable = tableCheckResult.rows[0]?.exists || false;
 
-      const rows = conditions.length > 0
-        ? await query.where(and(...conditions))
-        : await query;
+      let query: string;
+      
+      if (hasApplicationConfigTable) {
+        // Add application name filters if table exists
+        if (filters?.sourceApplicationName && filters.sourceApplicationName !== 'all') {
+          whereClauses.push(`source_app.application_name ILIKE $${paramIndex++}`);
+          params.push(`%${filters.sourceApplicationName}%`);
+        }
 
-      return rows.map((row) => row.config);
+        if (filters?.targetApplicationName && filters.targetApplicationName !== 'all') {
+          whereClauses.push(`target_app.application_name ILIKE $${paramIndex++}`);
+          params.push(`%${filters.targetApplicationName}%`);
+        }
+
+        const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        // Execute raw SQL query with LEFT JOINs for both source and target applications
+        query = `
+          SELECT ct.*
+          FROM config_table ct
+          LEFT JOIN application_config_table source_app ON ct.source_application_id = source_app.application_id
+          LEFT JOIN application_config_table target_app ON ct.target_application_id = target_app.application_id
+          ${whereClause}
+          ORDER BY ct.created_at DESC
+        `;
+      } else {
+        // If application_config_table doesn't exist, query without joins
+        const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        
+        query = `
+          SELECT ct.*
+          FROM config_table ct
+          ${whereClause}
+          ORDER BY ct.created_at DESC
+        `;
+      }
+
+      const result = await userPool.query(query, params);
+      return result.rows as ConfigRecord[];
     } catch (error) {
       console.error('Error fetching pipelines:', error);
       throw new Error(`Failed to fetch pipelines: ${error instanceof Error ? error.message : 'Unknown error'}`);
