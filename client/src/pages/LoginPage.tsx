@@ -103,7 +103,7 @@ export default function LoginPage() {
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 relative overflow-hidden"
+      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 relative"
       style={{
         backgroundImage: `url(${plutoBackground})`,
         backgroundSize: 'cover',
@@ -156,7 +156,7 @@ export default function LoginPage() {
         </div>
       </nav>
       {/* Main Content */}
-      <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
+      <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
         <div className="w-full max-w-md">
           {/* Logo Section */}
           <div className="text-center mb-8 animate-fade-in">
