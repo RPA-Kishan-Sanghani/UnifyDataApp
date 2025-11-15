@@ -2107,6 +2107,19 @@ export class DatabaseStorage implements IStorage {
       const tableCheckResult = await userPool.query(tableCheckQuery);
       const hasApplicationConfigTable = tableCheckResult.rows[0]?.exists || false;
 
+      // Check if created_at column exists in config_table
+      const columnCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'config_table' AND column_name = 'created_at'
+        );
+      `;
+      const columnCheckResult = await userPool.query(columnCheckQuery);
+      const hasCreatedAtColumn = columnCheckResult.rows[0]?.exists || false;
+
+      // Determine ORDER BY clause based on available columns
+      const orderByClause = hasCreatedAtColumn ? 'ORDER BY ct.created_at DESC' : 'ORDER BY ct.config_key DESC';
+
       let query: string;
       
       if (hasApplicationConfigTable) {
@@ -2130,7 +2143,7 @@ export class DatabaseStorage implements IStorage {
           LEFT JOIN application_config_table source_app ON ct.source_application_id = source_app.application_id
           LEFT JOIN application_config_table target_app ON ct.target_application_id = target_app.application_id
           ${whereClause}
-          ORDER BY ct.created_at DESC
+          ${orderByClause}
         `;
       } else {
         // If application_config_table doesn't exist, query without joins
@@ -2140,7 +2153,7 @@ export class DatabaseStorage implements IStorage {
           SELECT ct.*
           FROM config_table ct
           ${whereClause}
-          ORDER BY ct.created_at DESC
+          ${orderByClause}
         `;
       }
 
