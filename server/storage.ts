@@ -901,6 +901,9 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     sourceSystem?: string;
     status?: string;
+    layer?: string;
+    category?: string;
+    targetTable?: string;
     dateRange?: { start: Date; end: Date };
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
@@ -924,6 +927,9 @@ export class DatabaseStorage implements IStorage {
       search,
       sourceSystem,
       status,
+      layer,
+      category,
+      targetTable,
       dateRange,
       sortBy = 'startTime',
       sortOrder = 'desc'
@@ -938,7 +944,7 @@ export class DatabaseStorage implements IStorage {
       let paramIndex = 1;
 
       if (search) {
-        whereClauses.push(`code_name LIKE $${paramIndex}`);
+        whereClauses.push(`(code_name LIKE $${paramIndex} OR target_table_name LIKE $${paramIndex} OR source_system LIKE $${paramIndex})`);
         params.push(`%${search}%`);
         paramIndex++;
       }
@@ -952,6 +958,18 @@ export class DatabaseStorage implements IStorage {
       if (status && status !== 'all') {
         whereClauses.push(`status = $${paramIndex}`);
         params.push(status);
+        paramIndex++;
+      }
+
+      if (layer && layer !== 'all') {
+        whereClauses.push(`schema_name ILIKE $${paramIndex}`);
+        params.push(`%${layer}%`);
+        paramIndex++;
+      }
+
+      if (targetTable && targetTable !== 'all') {
+        whereClauses.push(`target_table_name ILIKE $${paramIndex}`);
+        params.push(`%${targetTable}%`);
         paramIndex++;
       }
 
