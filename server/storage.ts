@@ -372,7 +372,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // Hash the password before storing
       const hashedPassword = await bcrypt.hash(insertUser.password, 10);
-      
+
       const [user] = await db
         .insert(users)
         .values({
@@ -431,7 +431,7 @@ export class DatabaseStorage implements IStorage {
     targetTable?: string;
   }) {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty metrics if no user config
     if (!userPoolResult) {
       return {
@@ -445,7 +445,7 @@ export class DatabaseStorage implements IStorage {
 
     const userPool = userPoolResult.pool;
     const client = await userPool.connect();
-    
+
     try {
       const metrics = {
         totalPipelines: 0,
@@ -482,7 +482,7 @@ export class DatabaseStorage implements IStorage {
         `;
 
         const dqResult = await client.query(dqQuery, dqParams);
-        
+
         dqResult.rows.forEach(row => {
           const status = row.status?.toLowerCase();
           const count = Number(row.count);
@@ -526,7 +526,7 @@ export class DatabaseStorage implements IStorage {
         `;
 
         const reconResult = await client.query(reconQuery, reconParams);
-        
+
         reconResult.rows.forEach(row => {
           const status = row.status?.toLowerCase();
           const count = Number(row.count);
@@ -597,7 +597,7 @@ export class DatabaseStorage implements IStorage {
       `;
 
       const result = await client.query(query, params);
-      
+
       result.rows.forEach(row => {
         const status = row.status?.toLowerCase();
         const count = Number(row.count);
@@ -630,7 +630,7 @@ export class DatabaseStorage implements IStorage {
     targetTable?: string;
   }) {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty summary if no user config
     if (!userPoolResult) {
       return {
@@ -644,7 +644,7 @@ export class DatabaseStorage implements IStorage {
 
     const userPool = userPoolResult.pool;
     const client = await userPool.connect();
-    
+
     try {
       const summary = {
         dataQuality: { total: 0, success: 0, failed: 0 },
@@ -700,7 +700,7 @@ export class DatabaseStorage implements IStorage {
         `;
 
         const dqResult = await client.query(dqQuery, dqParams);
-        
+
         dqResult.rows.forEach(row => {
           const status = row.status?.toLowerCase();
           const count = Number(row.count);
@@ -762,7 +762,7 @@ export class DatabaseStorage implements IStorage {
         `;
 
         const reconResult = await client.query(reconQuery, reconParams);
-        
+
         reconResult.rows.forEach(row => {
           const status = row.status?.toLowerCase();
           const count = Number(row.count);
@@ -850,7 +850,7 @@ export class DatabaseStorage implements IStorage {
         // Map execution_layer to summary category
         if (executionLayer === 'bronze' || executionLayer === 'silver' || executionLayer === 'gold') {
           const category = executionLayer as 'bronze' | 'silver' | 'gold';
-          
+
           summary[category].total += count;
 
           if (status === 'success') {
@@ -869,7 +869,7 @@ export class DatabaseStorage implements IStorage {
 
   async getDashboardFilterOptions(userId: string) {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty arrays if no user config
     if (!userPoolResult) {
       return {
@@ -881,7 +881,7 @@ export class DatabaseStorage implements IStorage {
 
     const userPool = userPoolResult.pool;
     const client = await userPool.connect();
-    
+
     try {
       // Get distinct source systems
       const systemsQuery = `
@@ -945,7 +945,7 @@ export class DatabaseStorage implements IStorage {
     sortOrder?: 'asc' | 'desc';
   } = {}) {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty result if no user config
     if (!userPoolResult) {
       return {
@@ -972,7 +972,7 @@ export class DatabaseStorage implements IStorage {
     } = options;
 
     const client = await userPool.connect();
-    
+
     try {
       // Build WHERE clause conditions
       const whereClauses = [];
@@ -1038,7 +1038,7 @@ export class DatabaseStorage implements IStorage {
 
       // Apply pagination
       const offset = (page - 1) * limit;
-      
+
       const dataQuery = `
         SELECT 
           audit_key, code_name, run_id, source_system, schema_name,
@@ -1050,7 +1050,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY ${sortColumn} ${sortOrderClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
-      
+
       const dataResult = await client.query(dataQuery, [...params, limit, offset]);
 
       // Get error details for each audit record
@@ -1064,7 +1064,7 @@ export class DatabaseStorage implements IStorage {
           WHERE audit_key = ANY($1)
         `;
         const errorResult = await client.query(errorQuery, [auditKeys]);
-        
+
         errorResult.rows.forEach(error => {
           if (error.audit_key && !errorDetails[error.audit_key]) {
             errorDetails[error.audit_key] = error.error_details || '';
@@ -1114,7 +1114,7 @@ export class DatabaseStorage implements IStorage {
     sortOrder?: 'asc' | 'desc';
   } = {}) {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty result if no user config
     if (!userPoolResult) {
       return {
@@ -1138,7 +1138,7 @@ export class DatabaseStorage implements IStorage {
     } = options;
 
     const client = await userPool.connect();
-    
+
     try {
       // Build WHERE clause conditions
       const whereClauses = [];
@@ -1199,7 +1199,7 @@ export class DatabaseStorage implements IStorage {
 
       // Apply pagination
       const offset = (page - 1) * limit;
-      
+
       const dataQuery = `
         SELECT 
           audit_key, code_name, run_id, source_system, schema_name,
@@ -1211,7 +1211,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY ${sortColumn} ${sortOrderClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
-      
+
       const dataResult = await client.query(dataQuery, [...params, limit, offset]);
 
       const data = dataResult.rows.map(row => ({
@@ -1244,7 +1244,7 @@ export class DatabaseStorage implements IStorage {
 
   async getErrors(userId: string, dateRange?: { start: Date; end: Date }) {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty array if no user config
     if (!userPoolResult) {
       return [];
@@ -1252,7 +1252,7 @@ export class DatabaseStorage implements IStorage {
 
     const userPool = userPoolResult.pool;
     const client = await userPool.connect();
-    
+
     try {
       // Build WHERE clause conditions
       const whereClauses = [];
@@ -1342,14 +1342,14 @@ export class DatabaseStorage implements IStorage {
     status?: string;
   }): Promise<DataConnection[]> {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty array if no user config
     if (!userPoolResult) {
       return [];
     }
 
     const { db: userDb } = userPoolResult;
-    
+
     try {
       // Build WHERE conditions using Drizzle ORM
       const conditions = [];
@@ -1390,7 +1390,7 @@ export class DatabaseStorage implements IStorage {
           .from(dataConnectionTable)
           .orderBy(desc(dataConnectionTable.createdAt));
       }
-      
+
       return result;
     } catch (error) {
       console.error('Error fetching connections:', error);
@@ -1633,7 +1633,7 @@ export class DatabaseStorage implements IStorage {
           `);
 
           await mysqlConnection.end();
-          
+
           return (rows as any[]).map((row: any) => row.SCHEMA_NAME);
         } catch (queryError) {
           await mysqlConnection.end();
@@ -1745,7 +1745,7 @@ export class DatabaseStorage implements IStorage {
           `, [schemaName, tableName]);
 
           await mysqlConnection.end();
-          
+
           return (rows as any[]).map((row: any) => row.COLUMN_NAME);
         } catch (queryError) {
           await mysqlConnection.end();
@@ -1915,7 +1915,7 @@ export class DatabaseStorage implements IStorage {
           `, [schemaName, tableName]);
 
           await mysqlConnection.end();
-          
+
           return (rows as any[]).map((row: any) => ({
             attributeName: row.column_name,
             dataType: row.data_type,
@@ -2035,7 +2035,7 @@ export class DatabaseStorage implements IStorage {
           `, [schemaName]);
 
           await mysqlConnection.end();
-          
+
           return (rows as any[]).map((row: any) => row.TABLE_NAME);
         } catch (queryError) {
           await mysqlConnection.end();
@@ -2068,14 +2068,14 @@ export class DatabaseStorage implements IStorage {
   // Pipeline configuration methods
   async getPipelines(userId: string, filters?: { search?: string; executionLayer?: string; sourceApplicationName?: string; targetApplicationName?: string; status?: string }): Promise<ConfigRecord[]> {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty array if no user config
     if (!userPoolResult) {
       return [];
     }
 
     const { pool: userPool } = userPoolResult;
-    
+
     try {
       // Build WHERE conditions
       const whereClauses: string[] = [];
@@ -2121,7 +2121,7 @@ export class DatabaseStorage implements IStorage {
       const orderByClause = hasCreatedAtColumn ? 'ORDER BY ct.created_at DESC' : 'ORDER BY ct.config_key DESC';
 
       let query: string;
-      
+
       if (hasApplicationConfigTable) {
         // Add application name filters if table exists (exact match since user selects from dropdown)
         if (filters?.sourceApplicationName && filters.sourceApplicationName !== 'all' && filters.sourceApplicationName !== '') {
@@ -2148,7 +2148,7 @@ export class DatabaseStorage implements IStorage {
       } else {
         // If application_config_table doesn't exist, query without joins
         const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-        
+
         query = `
           SELECT ct.*
           FROM config_table ct
@@ -2158,7 +2158,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       const result = await userPool.query(query, params);
-      
+
       // Convert snake_case column names to camelCase
       return result.rows.map((row: any) => ({
         configKey: row.config_key,
@@ -2218,7 +2218,7 @@ export class DatabaseStorage implements IStorage {
       const result = await userDb
         .select({ maxKey: sql<number>`COALESCE(MAX(config_key), 0)` })
         .from(configTable);
-      
+
       return result[0]?.maxKey || 0;
     } catch (error) {
       console.error('Error fetching max config_key:', error);
@@ -2293,7 +2293,7 @@ export class DatabaseStorage implements IStorage {
         WHERE ct.source_application_id IS NOT NULL
         ORDER BY ac.application_name
       `;
-      
+
       const result = await userPool.query(query);
       return result.rows;
     } catch (error) {
@@ -2319,6 +2319,7 @@ export class DatabaseStorage implements IStorage {
       const hasApplicationConfig = tableCheckResult.rows[0]?.exists || false;
 
       if (!hasApplicationConfig) {
+        console.log('⚠️  application_config table does not exist');
         return [];
       }
 
@@ -2332,11 +2333,12 @@ export class DatabaseStorage implements IStorage {
         WHERE ct.target_application_id IS NOT NULL
         ORDER BY ac.application_name
       `;
-      
+
       const result = await userPool.query(query);
+      console.log(`✅ Found ${result.rows.length} target applications from config_table`);
       return result.rows;
     } catch (error) {
-      console.error('Error fetching target applications:', error);
+      console.error('❌ Error fetching target applications:', error);
       return [];
     }
   }
@@ -2356,7 +2358,7 @@ export class DatabaseStorage implements IStorage {
         WHERE ac.application_name = $1
         LIMIT 1
       `;
-      
+
       const result = await userPool.query(query, [applicationName]);
       if (result.rows.length > 0) {
         return result.rows[0].connection_name;
@@ -2396,9 +2398,9 @@ export class DatabaseStorage implements IStorage {
         WHERE COALESCE(ct.target_application_id, ct.source_application_id) IS NOT NULL
         ORDER BY ac.application_name
       `;
-      
+
       const result = await userPool.query(query);
-      
+
       return result.rows;
     } catch (error) {
       console.error('❌ Error fetching data dictionary target applications:', error);
@@ -2435,14 +2437,14 @@ export class DatabaseStorage implements IStorage {
   // Data dictionary implementation
   async getDataDictionaryEntries(userId: string, filters?: { search?: string; executionLayer?: string; schemaName?: string; tableName?: string; targetApplicationName?: string; customField?: string; customValue?: string }): Promise<DataDictionaryRecord[]> {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty array if no user config
     if (!userPoolResult) {
       return [];
     }
 
     const { db: userDb } = userPoolResult;
-    
+
     try {
       // Build WHERE conditions using Drizzle ORM
       const conditions = [];
@@ -2499,14 +2501,14 @@ export class DatabaseStorage implements IStorage {
       // Execute query with Drizzle ORM
       // If filtering by target application name, join through config_table and application_config
       let result;
-      
+
       if (filters?.targetApplicationName && filters.targetApplicationName !== 'all') {
         // Add join condition for target application filter
         conditions.push(eq(applicationConfigTable.applicationName, filters.targetApplicationName));
-        
+
         // Use COALESCE to check target_application_id first, then fall back to source_application_id
         const appIdJoinCondition = sql`COALESCE(${configTable.targetApplicationId}, ${configTable.sourceApplicationId}) = ${applicationConfigTable.applicationId}`;
-        
+
         if (conditions.length > 0) {
           result = await userDb
             .select({
@@ -2578,7 +2580,7 @@ export class DatabaseStorage implements IStorage {
             .orderBy(desc(dataDictionaryTable.insertDate));
         }
       }
-      
+
       return result;
     } catch (error) {
       console.error('Error fetching data dictionary entries:', error);
@@ -2642,7 +2644,7 @@ export class DatabaseStorage implements IStorage {
           activeFlag: entry.activeFlag || 'Y'
         })
         .returning();
-      
+
       console.log('Successfully inserted data dictionary entry with ID:', created.dataDictionaryKey);
       return created;
     } catch (error) {
@@ -2688,14 +2690,14 @@ export class DatabaseStorage implements IStorage {
   // Reconciliation config methods implementation
   async getReconciliationConfigs(userId: string, filters?: { search?: string; executionLayer?: string; configKey?: number; reconType?: string; status?: string; targetApplicationId?: number }): Promise<ReconciliationConfig[]> {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty array if no user config
     if (!userPoolResult) {
       return [];
     }
 
     const { db: userDb } = userPoolResult;
-    
+
     try {
       // Build WHERE conditions using Drizzle ORM
       const conditions = [];
@@ -2731,10 +2733,10 @@ export class DatabaseStorage implements IStorage {
       if (filters?.targetApplicationId) {
         // Get all columns from the base table using getTableColumns
         const reconColumns = getTableColumns(reconciliationConfigTable);
-        
+
         // Add target application filter condition (only when joining)
         const joinConditions = [...conditions, eq(applicationConfigTable.applicationId, filters.targetApplicationId)];
-        
+
         // Join with config_table and application_config for target application filtering
         if (joinConditions.length > 0) {
           result = await userDb
@@ -2800,7 +2802,7 @@ export class DatabaseStorage implements IStorage {
     const nextKey = (maxKeyResult[0]?.maxKey ?? 0) + 1;
 
     console.log('Creating reconciliation config with next recon_key:', nextKey);
-    
+
     // Use Drizzle ORM insert with explicit recon_key
     const [created] = await userDb
       .insert(reconciliationConfigTable)
@@ -2820,9 +2822,9 @@ export class DatabaseStorage implements IStorage {
         activeFlag: config.activeFlag || 'Y',
       })
       .returning();
-      
+
     console.log('Created reconciliation config with recon_key:', created.reconKey);
-    
+
     return created;
   }
 
@@ -2839,7 +2841,7 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
-  
+
 
   async deleteReconciliationConfig(userId: string, id: number): Promise<boolean> {
     const userPoolResult = await getUserSpecificPool(userId);
@@ -2854,13 +2856,13 @@ export class DatabaseStorage implements IStorage {
 
   async getApplicationConfigs(userId: string, filters?: { search?: string; status?: string; applicationType?: string }): Promise<ApplicationConfig[]> {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     if (!userPoolResult) {
       return [];
     }
 
     const { db: userDb } = userPoolResult;
-    
+
     try {
       const conditions = [];
 
@@ -3014,14 +3016,14 @@ export class DatabaseStorage implements IStorage {
   // Data Quality Config implementations
   async getDataQualityConfigs(userId: string, filters?: { search?: string; executionLayer?: string; configKey?: number; validationType?: string; status?: string; targetApplicationId?: number }): Promise<DataQualityConfig[]> {
     const userPoolResult = await getUserSpecificPool(userId);
-    
+
     // Return empty array if no user config
     if (!userPoolResult) {
       return [];
     }
 
     const { db: userDb } = userPoolResult;
-    
+
     try {
       // Build WHERE conditions using Drizzle ORM
       const conditions = [];
@@ -3057,10 +3059,10 @@ export class DatabaseStorage implements IStorage {
       if (filters?.targetApplicationId) {
         // Get all columns from the base table using getTableColumns
         const dqColumns = getTableColumns(dataQualityConfigTable);
-        
+
         // Add target application filter condition (only when joining)
         const joinConditions = [...conditions, eq(applicationConfigTable.applicationId, filters.targetApplicationId)];
-        
+
         // Join with config_table and application_config for target application filtering
         if (joinConditions.length > 0) {
           result = await userDb
@@ -3221,7 +3223,7 @@ export class DatabaseStorage implements IStorage {
     // Detect database type based on port (3306 = MySQL, 5432 = PostgreSQL)
     const isMySQL = settings.port === 3306;
     const isPostgreSQL = settings.port === 5432;
-    
+
     if (!isMySQL && !isPostgreSQL) {
       return {
         success: false,
@@ -3232,7 +3234,7 @@ export class DatabaseStorage implements IStorage {
     if (isMySQL) {
       // Test MySQL connection
       let connection = null;
-      
+
       try {
         connection = await mysql.createConnection({
           host: settings.host,
@@ -3245,7 +3247,7 @@ export class DatabaseStorage implements IStorage {
         });
 
         await connection.query('SELECT 1');
-        
+
         return {
           success: true,
           message: 'MySQL connection successful',
@@ -3264,7 +3266,7 @@ export class DatabaseStorage implements IStorage {
     } else {
       // Test PostgreSQL connection
       let testPool: Pool | null = null;
-      
+
       try {
         testPool = new Pool({
           host: settings.host,
@@ -3278,7 +3280,7 @@ export class DatabaseStorage implements IStorage {
 
         // Test basic query
         await testPool.query('SELECT 1');
-        
+
         // Test if config_table exists
         try {
           await testPool.query('SELECT COUNT(*) FROM config_table LIMIT 1');
@@ -3289,7 +3291,7 @@ export class DatabaseStorage implements IStorage {
             details: tableError.message,
           };
         }
-        
+
         return {
           success: true,
           message: 'PostgreSQL connection successful and config_table accessible',
@@ -3418,7 +3420,7 @@ export class DatabaseStorage implements IStorage {
     const client = await userPoolResult.pool.connect();
     try {
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Always store both connection_name and application_name
       await client.query(
         `INSERT INTO chat_sessions (session_id, user_id, connection_name, layer, application_name, created_at, updated_at)
@@ -3445,19 +3447,19 @@ export class DatabaseStorage implements IStorage {
       // Build WHERE clause dynamically based on provided filters
       let whereClause = 'WHERE cs.user_id = $1';
       const params: any[] = [userId];
-      
+
       if (connectionName) {
         params.push(connectionName);
         whereClause += ` AND cs.connection_name = $${params.length}`;
       }
-      
+
       if (layer) {
         params.push(layer);
         whereClause += ` AND LOWER(cs.layer) = LOWER($${params.length})`;
       }
-      
+
       params.push(limit);
-      
+
       const result = await client.query(
         `SELECT 
           cs.session_id,
@@ -3505,7 +3507,7 @@ export class DatabaseStorage implements IStorage {
         ALTER TABLE chat_messages 
         ADD COLUMN IF NOT EXISTS chart_type VARCHAR(50)
       `);
-      
+
       const result = await client.query(
         `SELECT message_id, session_id, message_type, content, sql, data, columns, row_count, chart_type, timestamp
          FROM chat_messages
@@ -3554,7 +3556,7 @@ export class DatabaseStorage implements IStorage {
         ALTER TABLE chat_messages 
         ADD COLUMN IF NOT EXISTS chart_type VARCHAR(50)
       `);
-      
+
       await client.query(
         `INSERT INTO chat_messages (message_id, session_id, message_type, content, sql, data, columns, row_count, chart_type, timestamp)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)`,
@@ -3602,7 +3604,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // Delete messages first
       await client.query(`DELETE FROM chat_messages WHERE session_id = $1`, [sessionId]);
-      
+
       // Delete session
       const result = await client.query(
         `DELETE FROM chat_sessions WHERE session_id = $1 AND user_id = $2`,
@@ -3864,7 +3866,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       values.push(chartId, userId);
-      
+
       const result = await client.query(
         `UPDATE saved_charts SET ${setClauses.join(', ')} 
          WHERE chart_id = $${paramIndex} AND user_id = $${paramIndex + 1}
