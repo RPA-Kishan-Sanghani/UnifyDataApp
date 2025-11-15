@@ -2097,11 +2097,11 @@ export class DatabaseStorage implements IStorage {
         params.push(filters.status);
       }
 
-      // Check if application_config_table exists
+      // Check if application_config exists
       const tableCheckQuery = `
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config_table'
+          WHERE table_name = 'application_config'
         );
       `;
       const tableCheckResult = await userPool.query(tableCheckQuery);
@@ -2140,13 +2140,13 @@ export class DatabaseStorage implements IStorage {
         query = `
           SELECT ct.*
           FROM config_table ct
-          LEFT JOIN application_config_table source_app ON ct.source_application_id = source_app.application_id
-          LEFT JOIN application_config_table target_app ON ct.target_application_id = target_app.application_id
+          LEFT JOIN application_config source_app ON ct.source_application_id = source_app.application_id
+          LEFT JOIN application_config target_app ON ct.target_application_id = target_app.application_id
           ${whereClause}
           ${orderByClause}
         `;
       } else {
-        // If application_config_table doesn't exist, query without joins
+        // If application_config doesn't exist, query without joins
         const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
         query = `
@@ -2269,11 +2269,11 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
-      // Check if application_config_table exists
+      // Check if application_config exists
       const tableCheckQuery = `
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config_table'
+          WHERE table_name = 'application_config'
         );
       `;
       const tableCheckResult = await userPool.query(tableCheckQuery);
@@ -2289,7 +2289,7 @@ export class DatabaseStorage implements IStorage {
           ac.application_id as "applicationId",
           ac.application_name as "applicationName"
         FROM config_table ct
-        INNER JOIN application_config_table ac ON ct.source_application_id = ac.application_id
+        INNER JOIN application_config ac ON ct.source_application_id = ac.application_id
         WHERE ct.source_application_id IS NOT NULL
         ORDER BY ac.application_name
       `;
@@ -2308,18 +2308,18 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
-      // Check if application_config_table exists
+      // Check if application_config exists
       const tableCheckQuery = `
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config_table'
+          WHERE table_name = 'application_config'
         );
       `;
       const tableCheckResult = await userPool.query(tableCheckQuery);
       const hasApplicationConfig = tableCheckResult.rows[0]?.exists || false;
 
       if (!hasApplicationConfig) {
-        console.log('⚠️  application_config_table does not exist');
+        console.log('⚠️  application_config does not exist');
         return [];
       }
 
@@ -2329,7 +2329,7 @@ export class DatabaseStorage implements IStorage {
           ac.application_id as "applicationId",
           ac.application_name as "applicationName"
         FROM config_table ct
-        INNER JOIN application_config_table ac ON ct.target_application_id = ac.application_id
+        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
         WHERE ct.target_application_id IS NOT NULL
         ORDER BY ac.application_name
       `;
@@ -2349,12 +2349,12 @@ export class DatabaseStorage implements IStorage {
     const { pool: userPool } = userPoolResult;
 
     try {
-      // Find connection_name for the given application by joining config_table with application_config_table
+      // Find connection_name for the given application by joining config_table with application_config
       // Note: userId scoping is implicit because getUserSpecificPool already scopes to user's database
       const query = `
         SELECT DISTINCT ct.connection_name
         FROM config_table ct
-        INNER JOIN application_config_table ac ON ct.target_application_id = ac.application_id
+        INNER JOIN application_config ac ON ct.target_application_id = ac.application_id
         WHERE ac.application_name = $1
         LIMIT 1
       `;
@@ -2394,7 +2394,7 @@ export class DatabaseStorage implements IStorage {
           ac.application_name as "applicationName"
         FROM data_dictionary_table dd
         INNER JOIN config_table ct ON dd.config_key = ct.config_key
-        INNER JOIN application_config_table ac ON COALESCE(ct.target_application_id, ct.source_application_id) = ac.application_id
+        INNER JOIN application_config ac ON COALESCE(ct.target_application_id, ct.source_application_id) = ac.application_id
         WHERE COALESCE(ct.target_application_id, ct.source_application_id) IS NOT NULL
         ORDER BY ac.application_name
       `;
@@ -4061,11 +4061,11 @@ export class DatabaseStorage implements IStorage {
     const { pool } = poolInfo;
 
     try {
-      // Check if application_config_table exists
+      // Check if application_config exists
       const tableCheck = await pool.query(`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config_table'
+          WHERE table_name = 'application_config'
         );
       `);
       const hasApplicationConfig = tableCheck.rows[0].exists;
@@ -4075,7 +4075,7 @@ export class DatabaseStorage implements IStorage {
         SELECT DISTINCT ac.application_id as "applicationId", ac.application_name as "applicationName"
         FROM data_lineage_detail dl
         JOIN config_table ct ON dl.config_key::integer = ct.config_key
-        JOIN application_config_table ac ON ct.source_application_id = ac.application_id
+        JOIN application_config ac ON ct.source_application_id = ac.application_id
         WHERE dl.active_flag = 'Y'
           AND ac.application_name IS NOT NULL
         ORDER BY ac.application_name
@@ -4086,7 +4086,7 @@ export class DatabaseStorage implements IStorage {
         SELECT DISTINCT ac.application_id as "applicationId", ac.application_name as "applicationName"
         FROM data_lineage_detail dl
         JOIN config_table ct ON dl.config_key::integer = ct.config_key
-        JOIN application_config_table ac ON ct.target_application_id = ac.application_id
+        JOIN application_config ac ON ct.target_application_id = ac.application_id
         WHERE dl.active_flag = 'Y'
           AND ac.application_name IS NOT NULL
         ORDER BY ac.application_name
@@ -4255,7 +4255,7 @@ export class DatabaseStorage implements IStorage {
       const tableCheck = await pool.query(`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
-          WHERE table_name = 'application_config_table'
+          WHERE table_name = 'application_config'
         ) as has_app_config,
         EXISTS (
           SELECT FROM information_schema.tables 
@@ -4265,7 +4265,7 @@ export class DatabaseStorage implements IStorage {
       const hasApplicationConfig = tableCheck.rows[0].has_app_config;
       const hasConfigTable = tableCheck.rows[0].has_config_table;
 
-      // Build query with proper JOINs to config_table and application_config_table
+      // Build query with proper JOINs to config_table and application_config
       let query = `
         SELECT
           dl.lineage_id as "lineageId",
@@ -4300,8 +4300,8 @@ export class DatabaseStorage implements IStorage {
       if (hasConfigTable && hasApplicationConfig) {
         query += `
           LEFT JOIN config_table ct ON dl.config_key IS NOT NULL AND dl.config_key::text ~ '^[0-9]+$' AND dl.config_key::integer = ct.config_key
-          LEFT JOIN application_config_table ac_src ON ct.source_application_id = ac_src.application_id
-          LEFT JOIN application_config_table ac_tgt ON ct.target_application_id = ac_tgt.application_id
+          LEFT JOIN application_config ac_src ON ct.source_application_id = ac_src.application_id
+          LEFT JOIN application_config ac_tgt ON ct.target_application_id = ac_tgt.application_id
         `;
       } else if (hasConfigTable) {
         query += `
