@@ -743,31 +743,32 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Query 3: Regular Pipelines from audit_table (Bronze/Silver/Gold layers)
+      // Use config_key to JOIN with config_table and get execution_layer
       const whereClauses = [];
       const params: any[] = [];
       let paramIndex = 1;
 
       if (dateRange) {
-        whereClauses.push(`start_time >= $${paramIndex} AND start_time <= $${paramIndex + 1}`);
+        whereClauses.push(`a.start_time >= $${paramIndex} AND a.start_time <= $${paramIndex + 1}`);
         params.push(dateRange.start, dateRange.end);
         paramIndex += 2;
       }
 
       if (filters?.search) {
-        whereClauses.push(`code_name LIKE $${paramIndex}`);
+        whereClauses.push(`a.code_name LIKE $${paramIndex}`);
         params.push(`%${filters.search}%`);
         paramIndex++;
       }
 
       if (filters?.system) {
-        whereClauses.push(`source_system = $${paramIndex}`);
+        whereClauses.push(`a.source_system = $${paramIndex}`);
         params.push(filters.system);
         paramIndex++;
       }
 
       if (filters?.layer) {
-        whereClauses.push(`schema_name ILIKE $${paramIndex}`);
-        params.push(`%${filters.layer.toLowerCase()}%`);
+        whereClauses.push(`LOWER(c.execution_layer) = $${paramIndex}`);
+        params.push(filters.layer.toLowerCase());
         paramIndex++;
       }
 
@@ -775,53 +776,51 @@ export class DatabaseStorage implements IStorage {
         const statusValue = filters.status.toLowerCase() === 'failed' ? 'Fail' :
                            filters.status.toLowerCase() === 'success' ? 'Success' :
                            filters.status;
-        whereClauses.push(`status = $${paramIndex}`);
+        whereClauses.push(`a.status = $${paramIndex}`);
         params.push(statusValue);
         paramIndex++;
       }
 
       if (filters?.targetTable) {
-        whereClauses.push(`target_table_name LIKE $${paramIndex}`);
+        whereClauses.push(`a.target_table_name LIKE $${paramIndex}`);
         params.push(`%${filters.targetTable}%`);
         paramIndex++;
       }
 
+      // Add filter to only include Bronze/Silver/Gold layers
+      whereClauses.push(`LOWER(c.execution_layer) IN ('bronze', 'silver', 'gold')`);
+
       const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
       const query = `
-        SELECT schema_name, status, COUNT(*) as count
-        FROM audit_table
+        SELECT 
+          LOWER(c.execution_layer) as execution_layer,
+          a.status,
+          COUNT(*) as count
+        FROM audit_table a
+        LEFT JOIN config_table c ON a.config_key = c.config_key
         ${whereClause}
-        GROUP BY schema_name, status
+        GROUP BY LOWER(c.execution_layer), a.status
       `;
 
       const result = await client.query(query, params);
 
       result.rows.forEach(row => {
-        const schemaName = row.schema_name?.toLowerCase() || '';
+        const executionLayer = row.execution_layer?.toLowerCase();
         const status = row.status?.toLowerCase();
         const count = Number(row.count);
 
-        let category: 'bronze' | 'silver' | 'gold';
+        // Map execution_layer to summary category
+        if (executionLayer === 'bronze' || executionLayer === 'silver' || executionLayer === 'gold') {
+          const category = executionLayer as 'bronze' | 'silver' | 'gold';
+          
+          summary[category].total += count;
 
-        // Categorize based on schema name patterns (only Bronze/Silver/Gold)
-        if (schemaName.includes('bronze')) {
-          category = 'bronze';
-        } else if (schemaName.includes('silver')) {
-          category = 'silver';
-        } else if (schemaName.includes('gold')) {
-          category = 'gold';
-        } else {
-          // Default to bronze for schemas that don't match specific patterns
-          category = 'bronze';
-        }
-
-        summary[category].total += count;
-
-        if (status === 'success') {
-          summary[category].success += count;
-        } else if (status === 'failed' || status === 'fail') {
-          summary[category].failed += count;
+          if (status === 'success') {
+            summary[category].success += count;
+          } else if (status === 'failed' || status === 'fail') {
+            summary[category].failed += count;
+          }
         }
       });
 
