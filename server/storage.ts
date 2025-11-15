@@ -1556,6 +1556,17 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Connection not found');
     }
 
+    // DEBUG: Log connection details
+    console.log('🔍 getDatabaseSchemas - Connection details:', {
+      connectionId: connection.connectionId,
+      connectionName: connection.connectionName,
+      connectionType: connection.connectionType,
+      host: connection.host,
+      port: connection.port,
+      databaseName: connection.databaseName,
+      username: connection.username
+    });
+
     // For PostgreSQL connections, try to connect to the actual database
     if (connection.connectionType?.toLowerCase() === 'postgresql') {
       try {
