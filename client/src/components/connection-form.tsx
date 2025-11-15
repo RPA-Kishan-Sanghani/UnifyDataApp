@@ -9,12 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TestTube2, CheckCircle, XCircle, Shield, Database as DatabaseIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { insertDataConnectionSchema, type DataConnection, type InsertDataConnection, type ApplicationConfig } from "@shared/schema";
+import { insertDataConnectionSchema, updateDataConnectionSchema, type DataConnection, type InsertDataConnection, type ApplicationConfig } from "@shared/schema";
 import { z } from "zod";
 
-const connectionFormSchema = insertDataConnectionSchema;
-
-type ConnectionFormData = z.infer<typeof connectionFormSchema>;
+type ConnectionFormData = z.infer<typeof insertDataConnectionSchema>;
 
 interface ConnectionFormProps {
   initialData?: DataConnection;
@@ -71,7 +69,7 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
   const { toast } = useToast();
 
   const form = useForm<ConnectionFormData>({
-    resolver: zodResolver(connectionFormSchema),
+    resolver: zodResolver(isEditing ? updateDataConnectionSchema : insertDataConnectionSchema),
     defaultValues: {
       connectionName: initialData?.connectionName || '',
       applicationName: initialData?.applicationName || '',
@@ -80,7 +78,7 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
       host: initialData?.host || '',
       port: initialData?.port || undefined,
       username: initialData?.username || '',
-      password: initialData?.password || '',
+      password: '', // Leave empty for security - only update if user provides new password
       databaseName: initialData?.databaseName || '',
       filePath: initialData?.filePath || '',
       apiKey: initialData?.apiKey || '',
@@ -121,6 +119,11 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
       const url = isEditing ? `/api/connections/${initialData?.connectionId}` : '/api/connections';
       const method = isEditing ? 'PUT' : 'POST';
       
+      // When editing, exclude empty password to keep existing password
+      const payload = isEditing && !data.password
+        ? Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'password'))
+        : data;
+      
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) {
@@ -130,7 +133,7 @@ export default function ConnectionForm({ initialData, isEditing = false, onSucce
       const response = await fetch(url, {
         method,
         headers,
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       
       console.log('Response status:', response.status);
