@@ -163,35 +163,31 @@ export function Reconciliation() {
   }
 
   return (
-    <div className="flex flex-col min-h-full w-full max-w-full bg-gray-50 overflow-y-auto">
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-w-0">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2" data-testid="heading-reconciliation">
-              Data Reconciliation Configuration
-            </h1>
-            <p className="text-gray-600">Manage your data reconciliation pipeline configurations</p>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/reconciliation-configs'] })}
-              data-testid="button-refresh-configs"
-            >
-              Refresh
-            </Button>
-            <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700" data-testid="button-add-reconciliation">
-              <Plus className="h-4 w-4" />Add Reconciliation Config
-            </Button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <ReconciliationFilterPanel
-          filters={filters}
-          onFiltersChange={setFilters}
-          onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/reconciliation-configs'] })}
-        />
+    <div className="flex flex-col min-h-full w-full max-w-full bg-gray-50">
+      <div className="flex-1 w-full max-w-full mx-auto py-6 px-4 sm:px-6 lg:px-8 min-h-0 overflow-y-auto">
+        <div className="flex gap-4 min-w-0">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 overflow-x-hidden">
+            <div className="mb-6 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2" data-testid="heading-reconciliation">
+                  Data Reconciliation Configuration
+                </h1>
+                <p className="text-gray-600">Manage your data reconciliation pipeline configurations</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/reconciliation-configs'] })}
+                  data-testid="button-refresh-configs"
+                >
+                  Refresh
+                </Button>
+                <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700" data-testid="button-add-reconciliation">
+                  <Plus className="h-4 w-4" />Add Reconciliation Config
+                </Button>
+              </div>
+            </div>
 
         {/* Reconciliation Config List */}
         <Card>
@@ -387,7 +383,18 @@ export function Reconciliation() {
             />
           </DialogContent>
         </Dialog>
-      </main>
+          </div>
+
+          {/* Right Sidebar - Filter Panel */}
+          <div className="flex-shrink-0">
+            <ReconciliationFilterPanel
+              filters={filters}
+              onFiltersChange={setFilters}
+              onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/reconciliation-configs'] })}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
