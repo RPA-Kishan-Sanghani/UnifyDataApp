@@ -312,6 +312,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard filter options endpoint
+  app.get("/api/dashboard/filter-options", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const options = await storage.getDashboardFilterOptions(userId);
+      res.json(options);
+    } catch (error) {
+      console.error('Error fetching dashboard filter options:', error);
+      res.status(500).json({ error: 'Failed to fetch filter options' });
+    }
+  });
+
   // Errors endpoint
   app.get("/api/dashboard/errors", authMiddleware, async (req: AuthRequest, res) => {
     try {

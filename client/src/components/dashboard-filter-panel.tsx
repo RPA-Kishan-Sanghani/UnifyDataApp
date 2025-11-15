@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,6 +38,16 @@ export default function DashboardFilterPanel({
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Fetch filter options from the API
+  const { data: filterOptions } = useQuery<{
+    sourceSystems: string[];
+    layers: string[];
+    statuses: string[];
+  }>({
+    queryKey: ['/api/dashboard/filter-options'],
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   const handleReset = () => {
     const resetFilters: DashboardFilters = {
@@ -151,12 +162,11 @@ export default function DashboardFilterPanel({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Systems</SelectItem>
-              <SelectItem value="salesforce">Salesforce</SelectItem>
-              <SelectItem value="mysql">MySQL</SelectItem>
-              <SelectItem value="postgresql">PostgreSQL</SelectItem>
-              <SelectItem value="oracle">Oracle</SelectItem>
-              <SelectItem value="snowflake">Snowflake</SelectItem>
-              <SelectItem value="bigquery">BigQuery</SelectItem>
+              {filterOptions?.sourceSystems.map((system) => (
+                <SelectItem key={system} value={system}>
+                  {system.charAt(0).toUpperCase() + system.slice(1)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -173,9 +183,11 @@ export default function DashboardFilterPanel({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Layers</SelectItem>
-              <SelectItem value="Bronze">Bronze</SelectItem>
-              <SelectItem value="Silver">Silver</SelectItem>
-              <SelectItem value="Gold">Gold</SelectItem>
+              {filterOptions?.layers.map((layer) => (
+                <SelectItem key={layer} value={layer}>
+                  {layer}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -192,10 +204,11 @@ export default function DashboardFilterPanel({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="success">Success</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="running">Running</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
+              {filterOptions?.statuses.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -44,6 +44,13 @@ export interface IStorage {
     gold: { total: number; success: number; failed: number };
   }>;
 
+  // Dashboard filter options
+  getDashboardFilterOptions(userId: string): Promise<{
+    sourceSystems: string[];
+    layers: string[];
+    statuses: string[];
+  }>;
+
   // Pipeline runs with filtering and pagination
   getPipelineRuns(userId: string, options: {
     page?: number;
@@ -819,6 +826,70 @@ export class DatabaseStorage implements IStorage {
       });
 
       return summary;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getDashboardFilterOptions(userId: string) {
+    const userPoolResult = await getUserSpecificPool(userId);
+    
+    // Return empty arrays if no user config
+    if (!userPoolResult) {
+      return {
+        sourceSystems: [],
+        layers: [],
+        statuses: [],
+      };
+    }
+
+    const userPool = userPoolResult.pool;
+    const client = await userPool.connect();
+    
+    try {
+      // Get distinct source systems
+      const systemsQuery = `
+        SELECT DISTINCT source_system
+        FROM audit_table
+        WHERE source_system IS NOT NULL AND source_system != ''
+        ORDER BY source_system
+      `;
+      const systemsResult = await client.query(systemsQuery);
+      const sourceSystems = systemsResult.rows.map(row => row.source_system);
+
+      // Get distinct layers (from schema_name patterns)
+      const layersQuery = `
+        SELECT DISTINCT 
+          CASE 
+            WHEN LOWER(schema_name) LIKE '%bronze%' THEN 'Bronze'
+            WHEN LOWER(schema_name) LIKE '%silver%' THEN 'Silver'
+            WHEN LOWER(schema_name) LIKE '%gold%' THEN 'Gold'
+            ELSE NULL
+          END as layer
+        FROM audit_table
+        WHERE schema_name IS NOT NULL
+      `;
+      const layersResult = await client.query(layersQuery);
+      const layers = layersResult.rows
+        .map(row => row.layer)
+        .filter(layer => layer !== null);
+      const uniqueLayers = Array.from(new Set(layers)) as string[];
+
+      // Get distinct statuses
+      const statusesQuery = `
+        SELECT DISTINCT status
+        FROM audit_table
+        WHERE status IS NOT NULL AND status != ''
+        ORDER BY status
+      `;
+      const statusesResult = await client.query(statusesQuery);
+      const statuses = statusesResult.rows.map(row => row.status);
+
+      return {
+        sourceSystems,
+        layers: uniqueLayers,
+        statuses,
+      };
     } finally {
       client.release();
     }
