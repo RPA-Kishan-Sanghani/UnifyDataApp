@@ -1412,8 +1412,17 @@ export class DatabaseStorage implements IStorage {
 
   async updateConnection(userId: string, id: number, updates: UpdateDataConnection): Promise<DataConnection | undefined> {
     const userPoolResult = await getUserSpecificPool(userId);
-    if (!userPoolResult) return undefined;
+    if (!userPoolResult) {
+      console.error('❌ updateConnection: No user pool found for userId:', userId);
+      return undefined;
+    }
     const { db: userDb } = userPoolResult;
+
+    console.log('💾 updateConnection - About to update connection:', {
+      userId,
+      connectionId: id,
+      updates: { ...updates, password: updates.password ? '***' : undefined }
+    });
 
     const [updated] = await userDb
       .update(dataConnectionTable)
@@ -1423,6 +1432,13 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(dataConnectionTable.connectionId, id))
       .returning();
+    
+    console.log('✅ updateConnection - Updated connection:', {
+      connectionId: updated?.connectionId,
+      connectionName: updated?.connectionName,
+      databaseName: updated?.databaseName
+    });
+    
     return updated || undefined;
   }
 
