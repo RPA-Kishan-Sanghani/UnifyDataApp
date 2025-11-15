@@ -2110,15 +2110,15 @@ export class DatabaseStorage implements IStorage {
       let query: string;
       
       if (hasApplicationConfigTable) {
-        // Add application name filters if table exists
-        if (filters?.sourceApplicationName && filters.sourceApplicationName !== 'all') {
-          whereClauses.push(`source_app.application_name ILIKE $${paramIndex++}`);
-          params.push(`%${filters.sourceApplicationName}%`);
+        // Add application name filters if table exists (exact match since user selects from dropdown)
+        if (filters?.sourceApplicationName && filters.sourceApplicationName !== 'all' && filters.sourceApplicationName !== '') {
+          whereClauses.push(`source_app.application_name = $${paramIndex++}`);
+          params.push(filters.sourceApplicationName);
         }
 
-        if (filters?.targetApplicationName && filters.targetApplicationName !== 'all') {
-          whereClauses.push(`target_app.application_name ILIKE $${paramIndex++}`);
-          params.push(`%${filters.targetApplicationName}%`);
+        if (filters?.targetApplicationName && filters.targetApplicationName !== 'all' && filters.targetApplicationName !== '') {
+          whereClauses.push(`target_app.application_name = $${paramIndex++}`);
+          params.push(filters.targetApplicationName);
         }
 
         const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
