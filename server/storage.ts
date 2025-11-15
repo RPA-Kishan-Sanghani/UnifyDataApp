@@ -654,9 +654,10 @@ export class DatabaseStorage implements IStorage {
         gold: { total: 0, success: 0, failed: 0 },
       };
 
-      // Query 1: Data Quality Pipelines from data_quality_output_table
+      // Query 1: Data Quality Pipelines - Count DISTINCT pipelines from config table
+      // Get latest status for each unique data_quality_key
       try {
-        const dqWhereClauses = [];
+        const dqWhereClauses = ['dqc.active_flag = \'Y\''];
         const dqParams: any[] = [];
         let dqParamIndex = 1;
 
@@ -666,7 +667,7 @@ export class DatabaseStorage implements IStorage {
           const statusValue = filters.status.toLowerCase() === 'failed' ? 'Y' :
                              filters.status.toLowerCase() === 'success' ? 'N' :
                              filters.status;
-          dqWhereClauses.push(`result = $${dqParamIndex}`);
+          dqWhereClauses.push(`latest_result = $${dqParamIndex}`);
           dqParams.push(statusValue);
           dqParamIndex++;
         }
@@ -674,16 +675,26 @@ export class DatabaseStorage implements IStorage {
         const dqWhereClause = dqWhereClauses.length > 0 ? `WHERE ${dqWhereClauses.join(' AND ')}` : '';
 
         const dqQuery = `
-          SELECT result as status, COUNT(*) as count
-          FROM data_quality_output_table
+          WITH latest_dq_results AS (
+            SELECT DISTINCT ON (data_quality_key) 
+              data_quality_key, 
+              result
+            FROM data_quality_output_table
+            ORDER BY data_quality_key, dq_output_key DESC
+          )
+          SELECT 
+            COALESCE(ldr.result, 'Pending') as latest_result,
+            COUNT(*) as count
+          FROM data_quality_config_table dqc
+          LEFT JOIN latest_dq_results ldr ON dqc.data_quality_key = ldr.data_quality_key
           ${dqWhereClause}
-          GROUP BY result
+          GROUP BY latest_result
         `;
 
         const dqResult = await client.query(dqQuery, dqParams);
         
         dqResult.rows.forEach(row => {
-          const status = row.status?.toLowerCase();
+          const status = row.latest_result?.toLowerCase();
           const count = Number(row.count);
 
           summary.dataQuality.total += count;
@@ -693,14 +704,16 @@ export class DatabaseStorage implements IStorage {
           } else if (status === 'y') {
             summary.dataQuality.failed += count;
           }
+          // Pending pipelines are counted in total but not in success/failed
         });
       } catch (dqError) {
-        console.log('data_quality_output_table not found or error querying:', dqError);
+        console.log('data_quality_config_table not found or error querying:', dqError);
       }
 
-      // Query 2: Data Reconciliation Pipelines from recon_result
+      // Query 2: Data Reconciliation Pipelines - Count DISTINCT pipelines from config table
+      // Determine status per recon_key (if ANY check failed, pipeline is failed)
       try {
-        const reconWhereClauses = [];
+        const reconWhereClauses = ['rc.active_flag = \'Y\''];
         const reconParams: any[] = [];
         let reconParamIndex = 1;
 
@@ -710,7 +723,7 @@ export class DatabaseStorage implements IStorage {
           const statusValue = filters.status.toLowerCase() === 'failed' ? 'Fail' :
                              filters.status.toLowerCase() === 'success' ? 'Pass' :
                              filters.status;
-          reconWhereClauses.push(`result = $${reconParamIndex}`);
+          reconWhereClauses.push(`pipeline_status = $${reconParamIndex}`);
           reconParams.push(statusValue);
           reconParamIndex++;
         }
@@ -718,16 +731,30 @@ export class DatabaseStorage implements IStorage {
         const reconWhereClause = reconWhereClauses.length > 0 ? `WHERE ${reconWhereClauses.join(' AND ')}` : '';
 
         const reconQuery = `
-          SELECT result as status, COUNT(*) as count
-          FROM recon_result
-          ${reconWhereClause}
-          GROUP BY result
+          WITH recon_pipeline_status AS (
+            SELECT 
+              rc.recon_key,
+              CASE 
+                WHEN COUNT(CASE WHEN rr.result = 'Fail' THEN 1 END) > 0 THEN 'Fail'
+                WHEN COUNT(CASE WHEN rr.result = 'Pass' THEN 1 END) > 0 THEN 'Pass'
+                ELSE 'Pending'
+              END as pipeline_status
+            FROM reconciliation_config rc
+            LEFT JOIN recon_result rr ON rc.recon_key = rr.recon_key
+            WHERE rc.active_flag = 'Y'
+            GROUP BY rc.recon_key
+          )
+          SELECT 
+            pipeline_status,
+            COUNT(*) as count
+          FROM recon_pipeline_status
+          GROUP BY pipeline_status
         `;
 
         const reconResult = await client.query(reconQuery, reconParams);
         
         reconResult.rows.forEach(row => {
-          const status = row.status?.toLowerCase();
+          const status = row.pipeline_status?.toLowerCase();
           const count = Number(row.count);
 
           summary.reconciliation.total += count;
@@ -737,9 +764,10 @@ export class DatabaseStorage implements IStorage {
           } else if (status === 'fail') {
             summary.reconciliation.failed += count;
           }
+          // Pending pipelines are counted in total but not in success/failed
         });
       } catch (reconError) {
-        console.log('recon_result table not found or error querying:', reconError);
+        console.log('reconciliation_config table not found or error querying:', reconError);
       }
 
       // Query 3: Regular Pipelines from audit_table (Bronze/Silver/Gold layers)
