@@ -76,7 +76,7 @@ export default function LoginPage() {
 
       toast({
         title: "Login successful",
-        description: "Welcome to Redpluto Analytics!",
+        description: "Welcome to UnifyDataAI!",
       });
 
       // Redirect to dashboard
@@ -128,10 +128,10 @@ export default function LoginPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <span className="text-white font-bold text-sm">RP</span>
+              <span className="text-white font-bold text-sm">UD</span>
             </div>
             <span className="text-xl font-semibold text-white/90 hover:text-white transition-colors duration-200">
-              Redpluto Analytics
+              UnifyDataAI
             </span>
           </div>
 
@@ -161,13 +161,13 @@ export default function LoginPage() {
           {/* Logo Section */}
           <div className="text-center mb-8 animate-fade-in">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 hover:rotate-1">
-              <span className="text-white font-bold text-2xl">RP</span>
+              <span className="text-white font-bold text-2xl">UD</span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
               Welcome
             </h1>
             <p className="text-white/80 drop-shadow-sm">
-              Sign in to your Redpluto Analytics account
+              Sign in to your UnifyDataAI account
             </p>
           </div>
 
@@ -294,7 +294,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-8 text-center text-sm text-white/60 hover:text-white/80 transition-colors duration-200">
-            <p>© 2025 Redpluto Analytics. All rights reserved.</p>
+            <p>© 2025 UnifyDataAI. All rights reserved.</p>
           </div>
         </div>
       </div>
