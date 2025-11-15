@@ -662,11 +662,29 @@ export class DatabaseStorage implements IStorage {
 
         // Note: data_quality_output_table has no date column, so we skip date filtering
 
+        if (filters?.search) {
+          dqWhereClauses.push(`(dqo.table_name LIKE $${dqParamIndex} OR dqo.attribute LIKE $${dqParamIndex})`);
+          dqParams.push(`%${filters.search}%`);
+          dqParamIndex++;
+        }
+
+        if (filters?.layer) {
+          dqWhereClauses.push(`LOWER(dqc.execution_layer) = $${dqParamIndex}`);
+          dqParams.push(filters.layer.toLowerCase());
+          dqParamIndex++;
+        }
+
+        if (filters?.targetTable) {
+          dqWhereClauses.push(`dqo.table_name LIKE $${dqParamIndex}`);
+          dqParams.push(`%${filters.targetTable}%`);
+          dqParamIndex++;
+        }
+
         if (filters?.status) {
           const statusValue = filters.status.toLowerCase() === 'failed' ? 'Y' :
                              filters.status.toLowerCase() === 'success' ? 'N' :
                              filters.status;
-          dqWhereClauses.push(`result = $${dqParamIndex}`);
+          dqWhereClauses.push(`dqo.result = $${dqParamIndex}`);
           dqParams.push(statusValue);
           dqParamIndex++;
         }
@@ -674,10 +692,11 @@ export class DatabaseStorage implements IStorage {
         const dqWhereClause = dqWhereClauses.length > 0 ? `WHERE ${dqWhereClauses.join(' AND ')}` : '';
 
         const dqQuery = `
-          SELECT result as status, COUNT(*) as count
-          FROM data_quality_output_table
+          SELECT dqo.result as status, COUNT(*) as count
+          FROM data_quality_output_table dqo
+          LEFT JOIN data_quality_config_table dqc ON dqo.data_quality_key = dqc.data_quality_key
           ${dqWhereClause}
-          GROUP BY result
+          GROUP BY dqo.result
         `;
 
         const dqResult = await client.query(dqQuery, dqParams);
@@ -706,11 +725,29 @@ export class DatabaseStorage implements IStorage {
 
         // Note: recon_result has no date column, so we skip date filtering
 
+        if (filters?.search) {
+          reconWhereClauses.push(`(rr.target_table LIKE $${reconParamIndex} OR rr.attribute LIKE $${reconParamIndex})`);
+          reconParams.push(`%${filters.search}%`);
+          reconParamIndex++;
+        }
+
+        if (filters?.layer) {
+          reconWhereClauses.push(`LOWER(rr.execution_layer) = $${reconParamIndex}`);
+          reconParams.push(filters.layer.toLowerCase());
+          reconParamIndex++;
+        }
+
+        if (filters?.targetTable) {
+          reconWhereClauses.push(`rr.target_table LIKE $${reconParamIndex}`);
+          reconParams.push(`%${filters.targetTable}%`);
+          reconParamIndex++;
+        }
+
         if (filters?.status) {
           const statusValue = filters.status.toLowerCase() === 'failed' ? 'Fail' :
                              filters.status.toLowerCase() === 'success' ? 'Pass' :
                              filters.status;
-          reconWhereClauses.push(`result = $${reconParamIndex}`);
+          reconWhereClauses.push(`rr.result = $${reconParamIndex}`);
           reconParams.push(statusValue);
           reconParamIndex++;
         }
@@ -718,10 +755,10 @@ export class DatabaseStorage implements IStorage {
         const reconWhereClause = reconWhereClauses.length > 0 ? `WHERE ${reconWhereClauses.join(' AND ')}` : '';
 
         const reconQuery = `
-          SELECT result as status, COUNT(*) as count
-          FROM recon_result
+          SELECT rr.result as status, COUNT(*) as count
+          FROM recon_result rr
           ${reconWhereClause}
-          GROUP BY result
+          GROUP BY rr.result
         `;
 
         const reconResult = await client.query(reconQuery, reconParams);
