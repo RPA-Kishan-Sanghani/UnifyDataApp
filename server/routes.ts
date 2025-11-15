@@ -50,26 +50,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Determine if input is email or username
       const isEmail = username.includes('@');
-      let user;
+      let matchedUser = null;
 
       if (isEmail) {
-        user = await storage.getUserByEmail(username);
+        // For email login, get all users with this email and check password for each
+        // This handles duplicate emails by finding the one with matching password
+        const usersWithEmail = await db.select({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          password: users.password,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          photoUrl: users.photoUrl,
+          tourCompleted: users.tourCompleted
+        }).from(users).where(sql`${users.email} = ${username}`);
+
+        // Check password against each user until we find a match
+        for (const user of usersWithEmail) {
+          if (user.password && await bcrypt.compare(password, user.password)) {
+            matchedUser = user;
+            break;
+          }
+        }
       } else {
-        user = await storage.getUserByUsername(username);
+        // For username login, get the specific user
+        const user = await storage.getUserByUsername(username);
+        if (user && user.password && await bcrypt.compare(password, user.password)) {
+          matchedUser = user;
+        }
       }
 
-      // Verify password using bcrypt
-      if (user && user.password && await bcrypt.compare(password, user.password)) {
+      // Verify we found a matching user
+      if (matchedUser) {
         // Generate JWT token
         const token = generateToken({
-          userId: user.id,
-          email: user.email || '',
-          username: user.username || '',
+          userId: matchedUser.id,
+          email: matchedUser.email || '',
+          username: matchedUser.username || '',
         });
 
         // Log user activity
         await storage.logUserActivity({
-          userId: user.id,
+          userId: matchedUser.id,
           activityType: 'sign_in',
           activityCategory: 'auth',
           pagePath: '/login',
@@ -77,7 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userAgent: req.headers['user-agent'] || 'unknown',
         });
 
-        const { password: _, ...userWithoutPassword } = user;
+        const { password: _, ...userWithoutPassword } = matchedUser;
         res.json({ 
           user: userWithoutPassword,
           token,
