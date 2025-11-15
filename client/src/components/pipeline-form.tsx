@@ -302,6 +302,10 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
     queryFn: async () => {
       if (!selectedConnectionId) return [];
       const response = await fetch(`/api/connections/${selectedConnectionId}/schemas`, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        console.error('Failed to fetch schemas:', response.statusText);
+        return [];
+      }
       return await response.json() as string[];
     },
     enabled: !!selectedConnectionId
@@ -313,6 +317,10 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
     queryFn: async () => {
       if (!selectedConnectionId || !selectedSchema) return [];
       const response = await fetch(`/api/connections/${selectedConnectionId}/schemas/${selectedSchema}/tables`, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        console.error('Failed to fetch tables:', response.statusText);
+        return [];
+      }
       return await response.json() as string[];
     },
     enabled: !!selectedConnectionId && !!selectedSchema
@@ -358,6 +366,10 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
     queryFn: async () => {
       if (!selectedTargetConnectionId) return [];
       const response = await fetch(`/api/connections/${selectedTargetConnectionId}/schemas`, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        console.error('Failed to fetch target schemas:', response.statusText);
+        return [];
+      }
       return await response.json() as string[];
     },
     enabled: !!selectedTargetConnectionId
@@ -369,6 +381,10 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
     queryFn: async () => {
       if (!selectedTargetConnectionId || !selectedTargetSchema) return [];
       const response = await fetch(`/api/connections/${selectedTargetConnectionId}/schemas/${selectedTargetSchema}/tables`, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        console.error('Failed to fetch target tables:', response.statusText);
+        return [];
+      }
       return await response.json() as string[];
     },
     enabled: !!selectedTargetConnectionId && !!selectedTargetSchema
@@ -383,6 +399,10 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
     queryFn: async () => {
       if (!selectedTargetConnectionId || !selectedTargetSchema || !selectedTargetTable) return [];
       const response = await fetch(`/api/connections/${selectedTargetConnectionId}/schemas/${selectedTargetSchema}/tables/${selectedTargetTable}/columns`, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        console.error('Failed to fetch target columns:', response.statusText);
+        return [];
+      }
       return await response.json() as string[];
     },
     enabled: !!selectedTargetConnectionId && !!selectedTargetSchema && !!selectedTargetTable
