@@ -19,10 +19,10 @@ import { apiRequest } from "@/lib/queryClient";
 const formSchema = insertApplicationConfigSchema.extend({
   applicationType: z.string().min(1, "Application Type is required"),
   applicationName: z.string().min(1, "Application Name is required").max(100, "Maximum 100 characters"),
-  applicationOwner: z.string().optional(),
+  applicationOwner: z.string().min(1, "Application Owner is required"),
   applicationDescription: z.string().optional(),
-  department: z.string().optional(),
-  status: z.string().optional(),
+  department: z.string().min(1, "Department is required"),
+  status: z.string().min(1, "Status is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
