@@ -164,7 +164,7 @@ export default function LoginPage() {
               <span className="text-white font-bold text-2xl">RP</span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
-              Welcome Back
+              Welcome
             </h1>
             <p className="text-white/80 drop-shadow-sm">
               Sign in to your Redpluto Analytics account
