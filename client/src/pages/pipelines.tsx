@@ -194,10 +194,10 @@ export function Pipelines() {
                 open={openPipelines.has(pipeline.configKey)}
                 onOpenChange={() => togglePipeline(pipeline.configKey)}
               >
-                <CollapsibleTrigger className="w-full">
                   <CardHeader className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     <div className="flex items-center justify-between">
-                      <div className="flex-1 text-left">
+                      <CollapsibleTrigger className="flex-1 text-left">
+                        <div>
                         <CardTitle className="text-lg mb-2" data-testid={`text-pipeline-name-${pipeline.configKey}`}>
                           {pipeline.sourceTableName || `Pipeline ${pipeline.configKey}`}
                         </CardTitle>
@@ -233,7 +233,8 @@ export function Pipelines() {
                             {pipeline.createdAt ? new Date(pipeline.createdAt).toLocaleDateString() : 'N/A'}
                           </span>
                         </CardDescription>
-                      </div>
+                        </div>
+                      </CollapsibleTrigger>
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
@@ -275,15 +276,16 @@ export function Pipelines() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                        <div className="cursor-pointer" onClick={() => togglePipeline(pipeline.configKey)}>
                         {openPipelines.has(pipeline.configKey) ? (
                           <ChevronUp className="h-4 w-4" />
                         ) : (
                           <ChevronDown className="h-4 w-4" />
                         )}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
-                </CollapsibleTrigger>
 
                 <CollapsibleContent>
                   <CardContent className="pt-0 border-t bg-gray-50 dark:bg-gray-900">
