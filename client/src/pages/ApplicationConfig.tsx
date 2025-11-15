@@ -212,7 +212,7 @@ export default function ApplicationConfig() {
                     name="applicationType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Application Type</FormLabel>
+                        <FormLabel>Application Type <span className="text-red-500">*</span></FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-application-type">
@@ -235,7 +235,7 @@ export default function ApplicationConfig() {
                     name="applicationName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Application Name</FormLabel>
+                        <FormLabel>Application Name <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
@@ -253,7 +253,7 @@ export default function ApplicationConfig() {
                     name="applicationOwner"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Application Owner</FormLabel>
+                        <FormLabel>Application Owner <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
@@ -271,7 +271,7 @@ export default function ApplicationConfig() {
                     name="department"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Department</FormLabel>
+                        <FormLabel>Department <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
@@ -289,7 +289,7 @@ export default function ApplicationConfig() {
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Status</FormLabel>
+                        <FormLabel>Status <span className="text-red-500">*</span></FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-status">
