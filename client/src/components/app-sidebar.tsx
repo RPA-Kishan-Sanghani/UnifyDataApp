@@ -37,7 +37,11 @@ export default function AppSidebar() {
   return (
     <Sidebar side="left" variant="sidebar" collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center space-x-2 px-2">
+        <div 
+          className="flex items-center space-x-2 px-2 cursor-pointer hover:bg-gray-100 rounded-md py-2 transition-colors"
+          onClick={() => setLocation('/')}
+          data-testid="button-logo-home"
+        >
           <Database className="text-blue-600 h-6 w-6 flex-shrink-0" />
           <span className="font-bold text-gray-900 group-data-[collapsible=icon]:hidden">UnifyData AI</span>
         </div>
