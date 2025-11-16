@@ -150,6 +150,8 @@ export const configTable = pgTable("config_table", {
   targetSystem: varchar("target_system", { length: 100 }),
   targetConnectionId: integer("target_connection_id"),
   targetApplicationId: integer("target_application_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Temporarily use basic schemas to bypass TypeScript issues

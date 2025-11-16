@@ -2275,7 +2275,7 @@ export class DatabaseStorage implements IStorage {
 
     const [updated] = await userDb
       .update(configTable)
-      .set(updates)
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(configTable.configKey, id))
       .returning();
     return updated || undefined;
