@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -143,10 +144,7 @@ export default function DataConnections() {
   // Delete connection mutation
   const deleteConnectionMutation = useMutation({
     mutationFn: async (connectionId: number) => {
-      const response = await fetch(`/api/connections/${connectionId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete connection');
+      const response = await apiRequest('DELETE', `/api/connections/${connectionId}`);
       return response.json();
     },
     onSuccess: () => {
