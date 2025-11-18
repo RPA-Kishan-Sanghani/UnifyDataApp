@@ -528,20 +528,35 @@ export function DataDictionaryFormRedesigned({ entry, onSuccess, onCancel }: Dat
   });
 
   const updateColumn = (index: number, field: keyof ColumnMetadata, value: any) => {
-    setColumns(prev => prev.map((col, i) =>
-      i === index ? { ...col, [field]: value } : col
-    ));
+    setColumns(prev => prev.map((col, i) => {
+      if (i === index) {
+        const updatedCol = { ...col, [field]: value };
+        
+        // Auto-set length to 0 for date/timestamp data types
+        if (field === 'dataType' && typeof value === 'string') {
+          const dataTypeLower = value.toLowerCase();
+          if (dataTypeLower === 'date' || dataTypeLower === 'timestamp' || 
+              dataTypeLower.includes('timestamp') || dataTypeLower.includes('datetime')) {
+            updatedCol.length = 0;
+          }
+        }
+        
+        return updatedCol;
+      }
+      return col;
+    }));
   };
 
 
   const onSubmit = (data: z.infer<typeof dataDictionarySchema>) => {
     // Validate that all columns have required fields filled (all fields except columnDescription)
+    // Note: precision, scale, and length can be 0 (valid), but not null/undefined
     const invalidColumns = columns.filter(col => 
       !col.attributeName || 
       !col.dataType || 
-      col.precision === undefined || 
-      col.length === undefined || 
-      col.scale === undefined || 
+      col.precision === null || col.precision === undefined || 
+      col.length === null || col.length === undefined || 
+      col.scale === null || col.scale === undefined || 
       col.isPrimaryKey === undefined || 
       col.isForeignKey === undefined || 
       col.isNotNull === undefined
@@ -1278,9 +1293,10 @@ export function DataDictionaryFormRedesigned({ entry, onSuccess, onCancel }: Dat
                         <TableCell>
                           <Input
                             type="number"
-                            value={column.precision || ''}
-                            onChange={(e) => updateColumn(index, 'precision', e.target.value ? parseInt(e.target.value) : undefined)}
-                            className={`w-20 ${column.precision === undefined ? 'border-red-300 bg-red-50' : ''}`}
+                            min="0"
+                            value={column.precision !== undefined && column.precision !== null ? column.precision : ''}
+                            onChange={(e) => updateColumn(index, 'precision', e.target.value !== '' ? parseInt(e.target.value) : undefined)}
+                            className={`w-20 ${column.precision === undefined || column.precision === null ? 'border-red-300 bg-red-50' : ''}`}
                             data-testid={`input-precision-${index}`}
                             required
                             placeholder="Required"
@@ -1289,9 +1305,10 @@ export function DataDictionaryFormRedesigned({ entry, onSuccess, onCancel }: Dat
                         <TableCell>
                           <Input
                             type="number"
-                            value={column.length || ''}
-                            onChange={(e) => updateColumn(index, 'length', e.target.value ? parseInt(e.target.value) : undefined)}
-                            className={`w-20 ${column.length === undefined ? 'border-red-300 bg-red-50' : ''}`}
+                            min="0"
+                            value={column.length !== undefined && column.length !== null ? column.length : ''}
+                            onChange={(e) => updateColumn(index, 'length', e.target.value !== '' ? parseInt(e.target.value) : undefined)}
+                            className={`w-20 ${column.length === undefined || column.length === null ? 'border-red-300 bg-red-50' : ''}`}
                             data-testid={`input-length-${index}`}
                             required
                             placeholder="Required"
@@ -1301,9 +1318,9 @@ export function DataDictionaryFormRedesigned({ entry, onSuccess, onCancel }: Dat
                           <Input
                             type="number"
                             min="0"
-                            value={column.scale || ''}
-                            onChange={(e) => updateColumn(index, 'scale', e.target.value ? parseInt(e.target.value) : undefined)}
-                            className={`w-20 ${column.scale === undefined ? 'border-red-300 bg-red-50' : ''}`}
+                            value={column.scale !== undefined && column.scale !== null ? column.scale : ''}
+                            onChange={(e) => updateColumn(index, 'scale', e.target.value !== '' ? parseInt(e.target.value) : undefined)}
+                            className={`w-20 ${column.scale === undefined || column.scale === null ? 'border-red-300 bg-red-50' : ''}`}
                             data-testid={`input-scale-${index}`}
                             required
                             placeholder="Required"
