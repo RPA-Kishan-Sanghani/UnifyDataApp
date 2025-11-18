@@ -67,7 +67,13 @@ export function TourProvider({ children }: TourProviderProps) {
     // Store current step in localStorage for resume
     if (type === EVENTS.STEP_AFTER) {
       localStorage.setItem(TOUR_STORAGE_KEY, index.toString());
-      setStepIndex(index + 1);
+      
+      // Only update stepIndex based on the action
+      if (action === 'next') {
+        setStepIndex(index + 1);
+      } else if (action === 'prev') {
+        setStepIndex(index - 1);
+      }
     }
 
     // Handle tour completion or skip
