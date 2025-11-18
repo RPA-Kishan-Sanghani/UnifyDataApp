@@ -929,6 +929,7 @@ export default function ChatBox() {
   if (!isOpen) {
     return (
       <Button
+        id="chat-button"
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 z-50"
         data-testid="button-open-chat"

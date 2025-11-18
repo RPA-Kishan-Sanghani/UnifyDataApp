@@ -18,9 +18,10 @@ export const tourSteps: Step[] = [
     placement: 'right',
   },
   {
-    target: '[data-testid="button-open-chat"]',
+    target: '#chat-button',
     content: 'Chat with your data using AI! Ask questions in natural language and get instant insights with visualizations.',
     placement: 'left',
+    disableBeacon: true,
   },
   {
     target: '[data-testid="link-custom-dashboard"]',
