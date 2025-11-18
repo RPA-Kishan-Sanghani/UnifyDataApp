@@ -2404,6 +2404,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Change password endpoint
+  const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(6, "New password must be at least 6 characters"),
+  });
+
+  app.post("/api/user/change-password", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
+      const validatedData = changePasswordSchema.parse(req.body);
+      
+      // Get the current user
+      const user = await db.select({
+        id: users.id,
+        password: users.password,
+      }).from(users).where(sql`${users.id} = ${userId}`).limit(1);
+
+      if (!user || user.length === 0 || !user[0].password) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(validatedData.currentPassword, user[0].password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(validatedData.newPassword, 10);
+
+      // Update the password
+      await db.update(users)
+        .set({ password: hashedPassword })
+        .where(sql`${users.id} = ${userId}`);
+
+      res.json({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Invalid password data', details: error.errors });
+      } else {
+        console.error('Error changing password:', error);
+        res.status(500).json({ error: 'Failed to change password' });
+      }
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
