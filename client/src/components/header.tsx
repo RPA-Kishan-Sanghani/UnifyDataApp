@@ -100,13 +100,6 @@ export default function Header() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem 
                   onClick={() => setLocation('/settings')}
-                  data-testid="button-profile"
-                >
-                  <User className="mr-3 h-4 w-4 text-gray-400" />
-                  Your Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setLocation('/settings')}
                   data-testid="button-settings"
                 >
                   <Settings className="mr-3 h-4 w-4 text-gray-400" />
