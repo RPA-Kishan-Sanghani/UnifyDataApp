@@ -72,11 +72,22 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
     targetTableName: z.string().min(1, "Target table is required"),
     loadType: z.string().min(1, "Load type is required"),
     primaryKey: z.string().min(1, "Primary key is required"),
-    effectiveDate: z.string().min(1, "Effective date column is required"),
+    effectiveDate: z.string().optional(),
     activeFlag: z.string().min(1, "Active flag is required"),
     enableDynamicSchema: z.string().min(1, "Dynamic schema flag is required"),
     fullDataRefreshFlag: z.string().min(1, "Full data refresh flag is required"),
   }).superRefine((data, ctx) => {
+    // Effective date is required for all load types except Truncate
+    if (data.loadType !== 'Truncate') {
+      if (!data.effectiveDate || data.effectiveDate.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Effective date column is required for this load type",
+          path: ['effectiveDate'],
+        });
+      }
+    }
+
     // For SCD1 load type, execution sequence is mandatory
     if (data.loadType === 'SCD1') {
       if (!data.executionSequence || data.executionSequence.trim() === '') {
@@ -1422,14 +1433,14 @@ export function PipelineForm({ pipeline, onSuccess, onCancel }: PipelineFormProp
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
-                          Effective Date Column <span className="text-red-500">*</span>
+                          Effective Date Column {selectedLoadType !== 'Truncate' && <span className="text-red-500">*</span>}
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Date column used for incremental load tracking.</p>
+                                <p>Date column used for incremental load tracking. Not required for Truncate load type.</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
