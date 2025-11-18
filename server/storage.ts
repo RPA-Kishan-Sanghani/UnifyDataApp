@@ -2990,6 +2990,8 @@ export class DatabaseStorage implements IStorage {
     const { db: userDb } = userPoolResult;
 
     try {
+      console.log('findMatchingConfig - Search criteria:', JSON.stringify(criteria, null, 2));
+      
       // Build WHERE conditions for matching
       const conditions = [];
 
@@ -3021,8 +3023,11 @@ export class DatabaseStorage implements IStorage {
         conditions.push(ilike(configTable.targetTableName, criteria.targetTableName));
       }
 
+      console.log('findMatchingConfig - Number of conditions:', conditions.length);
+
       // Only search if we have at least one condition
       if (conditions.length === 0) {
+        console.log('findMatchingConfig - No conditions provided, returning undefined');
         return undefined;
       }
 
@@ -3032,6 +3037,13 @@ export class DatabaseStorage implements IStorage {
         .from(configTable)
         .where(and(...conditions))
         .limit(1);
+
+      console.log('findMatchingConfig - Result:', matchingConfig ? {
+        configKey: matchingConfig.configKey,
+        executionLayer: matchingConfig.executionLayer,
+        targetSchema: matchingConfig.targetSchemaName,
+        targetTable: matchingConfig.targetTableName
+      } : 'No match found');
 
       return matchingConfig || undefined;
     } catch (error) {

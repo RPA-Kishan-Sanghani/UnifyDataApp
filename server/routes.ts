@@ -1233,6 +1233,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.userId;
       const validatedData = insertReconciliationConfigSchema.parse(req.body);
       
+      console.log('Creating reconciliation config with data:', JSON.stringify({
+        executionLayer: validatedData.executionLayer,
+        sourceSystem: req.body.sourceSystem,
+        sourceType: req.body.sourceType,
+        sourceSchema: validatedData.sourceSchema,
+        sourceTable: validatedData.sourceTable,
+        targetSystem: req.body.targetSystem,
+        targetType: req.body.targetType,
+        targetSchema: validatedData.targetSchema,
+        targetTable: validatedData.targetTable,
+      }, null, 2));
+      
       // Search for matching config_key from config table
       const matchingConfig = await storage.findMatchingConfig(userId, {
         executionLayer: validatedData.executionLayer || undefined,
@@ -1244,6 +1256,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetType: req.body.targetType || undefined,
         targetSchemaName: validatedData.targetSchema || undefined,
         targetTableName: validatedData.targetTable || undefined,
+      });
+      
+      console.log('Matched config_key:', matchingConfig?.configKey, 'for reconciliation with target:', {
+        executionLayer: validatedData.executionLayer,
+        targetSchema: validatedData.targetSchema,
+        targetTable: validatedData.targetTable
       });
       
       // Assign config_key if match found
