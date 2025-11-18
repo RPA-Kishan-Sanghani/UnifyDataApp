@@ -22,7 +22,7 @@ export default function PipelineSummaryCards({ dateRange, refreshKey, filters }:
 
   const categories = [
     {
-      title: "Data Quality Pipelines",
+      title: "Data Quality",
       data: summary?.dataQuality || { total: 0, success: 0, failed: 0 },
       testId: "card-data-quality",
     },
